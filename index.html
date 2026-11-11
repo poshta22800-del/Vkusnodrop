@@ -287,6 +287,37 @@ nav button{border-radius:10px}.panel{border-radius:14px;background:linear-gradie
 .vst{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px;margin:10px 0}.vst>div{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:8px 10px}.vst small{display:block;color:var(--mute);font-size:11px}.vst b{font:700 14px var(--f-display)}
 .vch{width:100%;height:150px;display:block;background:var(--panel);border:1px solid var(--line);border-radius:10px}
 .vf{display:flex;gap:8px;justify-content:flex-end;margin-top:10px}
+/* ===== v2: графика, анимации, деньги ===== */
+.it .spot{position:absolute;left:50%;top:24px;width:112px;height:58px;margin-left:-56px;background:radial-gradient(closest-side,color-mix(in srgb,var(--rc) 55%,transparent),transparent);opacity:.55;pointer-events:none;transition:opacity .2s}
+.it:hover .spot{opacity:.95}
+.it .pic{position:relative;filter:drop-shadow(0 5px 3px #000a)}
+.it.t4 .pic,.it.t5 .pic{filter:drop-shadow(0 0 6px var(--rc)) drop-shadow(0 5px 3px #000a)}
+.it.t6 .pic,.it.t7 .pic{filter:drop-shadow(0 0 10px var(--rc)) drop-shadow(0 5px 3px #000a)}
+.it.v5 .spot{background:radial-gradient(closest-side,#fff9,transparent)}
+.it.v6 .spot{background:radial-gradient(closest-side,#ffd34dbb,transparent);animation:cglow 2.4s ease-in-out infinite}
+.it.v7 .spot{background:radial-gradient(closest-side,#7df9ffbb,transparent);animation:cglow 1.8s ease-in-out infinite}
+.it .pr{color:#fff;text-shadow:0 1px 6px #000}
+.it .ch{padding:1px 7px;border-radius:99px;background:#000a;color:#fff;font-weight:700}
+.it.sel{box-shadow:0 0 0 2px var(--accent),0 0 22px #ffbf2e55;transform:translateY(-2px)}
+.it.staked{pointer-events:none;animation:stk 1s ease-in-out infinite}
+@keyframes stk{50%{box-shadow:0 0 0 2px var(--accent),0 0 28px #ffbf2e99;filter:brightness(1.3)}}
+.ring{width:230px;height:230px;filter:drop-shadow(0 0 16px color-mix(in srgb,var(--ac,#46d38a) 35%,transparent))}
+.ring .arc{filter:drop-shadow(0 0 5px var(--ac))}
+.ring .ptr::before{width:0;height:0;background:none;border-radius:0;border-left:9px solid transparent;border-right:9px solid transparent;border-top:24px solid #fff;margin-left:-9px;top:-8px;filter:drop-shadow(0 0 6px var(--ac,#fff))}
+.ring .mid{font-size:36px}
+.ring.spinning{animation:rpulse .9s ease-in-out infinite}
+@keyframes rpulse{50%{filter:drop-shadow(0 0 34px var(--ac))}}
+.ring.win{animation:rwin .9s ease-out}
+@keyframes rwin{30%{transform:scale(1.1);filter:drop-shadow(0 0 44px #46d38a)}}
+.ring.lose{animation:shk .5s}
+@keyframes shk{20%,60%{transform:translateX(-7px)}40%,80%{transform:translateX(7px)}}
+.upstat{font-size:12px;color:var(--mute)}.upstat b{color:var(--fg);font-variant-numeric:tabular-nums}
+#bal{transition:color .2s;text-shadow:0 0 18px #ffbf2e44}#bal.up{color:#46d38a}#bal.dn{color:#ff5a6e}
+.fd{position:fixed;z-index:300;transform:translateX(-50%);font:700 16px var(--f-display);pointer-events:none;text-shadow:0 1px 6px #000;animation:fdv 1.3s ease-out forwards}
+@keyframes fdv{from{opacity:1;margin-top:0}to{opacity:0;margin-top:-34px}}
+.btn.pri:not(:disabled){animation:btnp 2.6s ease-in-out infinite}
+@keyframes btnp{50%{box-shadow:0 4px 26px #ffbf2e77}}
+@media(prefers-reduced-motion:reduce){.ring.spinning,.ring.win,.ring.lose,.it.staked,.it .spot,.btn.pri:not(:disabled),.fd{animation:none}}
 </style>
 
 <svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
@@ -962,20 +993,30 @@ function showReveal(w,uid){
   el.innerHTML=`<div class="rays"></div><div class="conf">${conf}</div><div class="rbox"><div class="rt">${TIERS[w.t][1]}</div>${card(w,{drop:0})}<div class="rbtns"><button class="btn pri" id="revClose">Забрать</button><button class="btn" id="revSell" data-sell="${uid}">Продать за ${fmt(w.v)}</button></div></div>`;
   el.hidden=false;
 }
+let dispBal=null,balRaf=0,balTo=0,balAnim=false;
+function floatDelta(d){const b=$("#bal");if(!b)return;const r=b.getBoundingClientRect(),e=document.createElement("div");e.className="fd";e.style.color=d>0?"#46d38a":"#ff5a6e";e.style.left=(r.left+r.width/2)+"px";e.style.top=(r.bottom+2)+"px";e.textContent=(d>0?"+":"−")+fmt(Math.abs(d));document.body.appendChild(e);setTimeout(()=>e.remove(),1300)}
+function setBal(){const el=$("#bal");if(!el)return;const to=S.bal;
+  if(dispBal===null||matchMedia("(prefers-reduced-motion:reduce)").matches){dispBal=to;el.textContent=fmt(to);return}
+  if(balAnim&&Math.abs(to-balTo)<2)return;
+  const from=dispBal,d=to-from;
+  if(Math.abs(d)<5){dispBal=to;el.textContent=fmt(to);return}
+  floatDelta(d);balTo=to;balAnim=true;cancelAnimationFrame(balRaf);el.classList.remove("up","dn");el.classList.add(d>0?"up":"dn");
+  const t0=performance.now();(function f(t){const k=Math.min(1,(t-t0)/700),e=1-Math.pow(1-k,3);dispBal=from+d*e;el.textContent=fmt(dispBal);
+    if(k<1)balRaf=requestAnimationFrame(f);else{dispBal=to;balAnim=false;el.classList.remove("up","dn")}})(t0)}
 const fmt=v=>"◈"+Math.floor(v).toLocaleString("ru-RU");
 const num=v=>Math.floor(v).toLocaleString("ru-RU");
 const invItems=()=>S.inv.map(x=>({uid:x.uid,...ITEMS[x.id]}));const trArrow=it=>{const d=(typeof trendOf==='function')?trendOf(it.model):0;return d>.0005?'<span class="tr up">▲</span>':d<-.0005?'<span class="tr dn">▼</span>':''};
 function toast(m){if(/Не хватает/.test(m))SND.err();const t=$("#toast");t.textContent=m;t.hidden=false;clearTimeout(toast.h);toast.h=setTimeout(()=>t.hidden=true,2400)}
 function card(it,o={}){
   const c=TIERS[it.t][2];
-  return `<div class="it t${it.t}${o.sel?" sel":""}${o.drop!=null?" drop":""}" style="--rc:${c}${o.drop!=null?`;--d:${o.drop}`:""}" ${o.uid?`data-uid="${o.uid}"`:""} ${o.id!=null?`data-id="${o.id}"`:""} ${o.btn?'tabindex="0" role="button"':""}>
-  <span class="tg">${TIERS[it.t][1]}</span>${o.ch!=null?`<span class="ch">${o.ch}</span>`:""}<svg class="pic" viewBox="0 0 80 48" style="--b:${it.col}" aria-hidden="true">${it.vi===4?'<ellipse cx="40" cy="42" rx="34" ry="5" fill="#ff3bd4" opacity=".55"/>':''}${artFor(it)}${FX[it.vi]}</svg><div class="nm">${it.model}</div><div class="vr">${it.vr}</div><div class="pr">${fmt(it.v)}${trArrow(it)}</div><span class="zm" data-zoom="${it.id}" title="Осмотреть 360°">🔍</span></div>`;
+  return `<div class="it t${it.t} v${it.vi}${o.sel?" sel":""}${o.drop!=null?" drop":""}" style="--rc:${c}${o.drop!=null?`;--d:${o.drop}`:""}" ${o.uid?`data-uid="${o.uid}"`:""} ${o.id!=null?`data-id="${o.id}"`:""} ${o.btn?'tabindex="0" role="button"':""}>
+  <i class="spot"></i><span class="tg">${TIERS[it.t][1]}</span>${o.ch!=null?`<span class="ch">${o.ch}</span>`:""}<svg class="pic" viewBox="0 0 80 48" style="--b:${it.col}" aria-hidden="true">${it.vi===4?'<ellipse cx="40" cy="42" rx="34" ry="5" fill="#ff3bd4" opacity=".55"/>':''}${artFor(it)}${FX[it.vi]}</svg><div class="nm">${it.model}</div><div class="vr">${it.vr}</div><div class="pr">${fmt(it.v)}${trArrow(it)}</div><span class="zm" data-zoom="${it.id}" title="Осмотреть 360°">🔍</span></div>`;
 }
-function pct(x){return x>=10?x.toFixed(1)+"%":x>=1?x.toFixed(2)+"%":x>=.01?x.toFixed(3)+"%":"<0.01%"}
+function pct(x){return (x>=10?x.toFixed(1)+"%":x>=1?x.toFixed(2)+"%":x>=.01?x.toFixed(3)+"%":"<0.01%").replace(".",",")}
 
 /* ---------- шапка / доход ---------- */
 function head(){
-  $("#bal").textContent=fmt(S.bal);
+  setBal();
   $("#incBar").style.width=((S.sec%60)/60*100)+"%";
   $("#incLbl").textContent="+10 ◈ через "+(60-S.sec%60)+" с";
   $("#snd").textContent=muted?"Звук: выкл":"Звук: вкл";
@@ -989,7 +1030,7 @@ setInterval(()=>{
   const was=Math.floor(S.sec/60);S.sec+=dt;S.bal+=10/60*dt;
   if(Math.floor(S.sec/60)>was)toast(dt>5?"Пока тебя не было: +◈"+Math.round(10/60*dt):"+◈10 за минуту игры");
   if(S.sec%5===0||dt>1)save();
-  $("#bal").textContent=fmt(S.bal);
+  setBal();
   $("#incBar").style.width=((S.sec%60)/60*100)+"%";
   $("#incLbl").textContent="+10 ◈ через "+(60-S.sec%60)+" с";
   if(tab==="cases"&&openCase==null&&!busy)updateLocks();
@@ -1103,45 +1144,48 @@ function renderTargets(){
   box.innerHTML=V===0?'<p class="sub">Сначала выбери свои предметы.</p>':list.length?list.map(it=>card(it,{id:it.id,sel:target===it.id,btn:1,ch:pct(chanceOf(V,it.v)*100)})).join(""):'<p class="sub">Ничего не найдено. Выбери побольше своих предметов или другой запрос.</p>';
   const si=$("#selInfo");if(si)si.textContent=sel.size?`· выбрано ${sel.size} на ${fmt(V)}`:"";
 }
+function updUpStat(){const e=$("#upStat");if(!e)return;const n=S.upW+S.upL;e.innerHTML=`Удачных апгрейдов: <b>${S.upW} из ${n}</b>${n?" · "+Math.round(S.upW/n*100)+"%":""}`}
 function renderRing(ang){
   const V=selVal(),T=target!=null?ITEMS[target]:null,has=T&&V>0&&T.v>V;
-  const ch=has?chanceOf(V,T.v):0,C=2*Math.PI*80;
-  const mine=invItems().filter(i=>sel.has(i.uid));
-  $("#ringBox").innerHTML=`<div class="ring"><svg viewBox="0 0 200 200"><circle cx="100" cy="100" r="80" fill="none" stroke="var(--panel2)" stroke-width="16"/>
-  <circle cx="100" cy="100" r="80" fill="none" stroke="var(--good)" stroke-width="16" stroke-dasharray="${C*ch} ${C}"/></svg>
+  const ch=has?chanceOf(V,T.v):0,C=2*Math.PI*80,ac=ch>=.5?"#46d38a":ch>=.2?"#ffbf2e":"#ff5a6e";
+  const mine=invItems().filter(i=>sel.has(i.uid)),x=has?T.v/V:0;
+  $("#ringBox").innerHTML=`<div class="ring" id="ring" style="--ac:${ac}"><svg viewBox="0 0 200 200"><circle cx="100" cy="100" r="80" fill="none" stroke="#0d1014" stroke-width="16"/><circle cx="100" cy="100" r="80" fill="none" stroke="#ff5a6e" stroke-opacity=".22" stroke-width="16"/>
+  <circle class="arc" cx="100" cy="100" r="80" fill="none" stroke="${ac}" stroke-width="16" stroke-dasharray="${C*ch} ${C}"/><circle cx="100" cy="100" r="92" fill="none" stroke="#fff" stroke-opacity=".18" stroke-width="3" stroke-dasharray="1.2 8.43"/></svg>
   <div class="ptr" id="ptr" style="transform:rotate(${rot}deg)"></div>
-  <div class="mid">${has?pct(ch*100):"—"}<small>шанс</small></div></div>
+  <div class="mid">${has?pct(ch*100):"—"}<small>${has?"шанс · ×"+x.toFixed(x>=10?0:1).replace(".",","):"выбери цель"}</small></div></div>
   <div class="pair">${(mine.length||addM>0)?stakeHtml(mine,V):""}${T?`<span class="arrow">→</span>${card(T)}`:""}</div>
-  <button class="btn pri" id="goBtn" ${canGo()&&!busy?"":"disabled"}>Апгрейд</button><div id="upRes"></div>`;
+  <button class="btn pri" id="goBtn" ${canGo()&&!busy?"":"disabled"}>Апгрейд</button><div class="upstat" id="upStat"></div><div id="upRes"></div>`;
+  updUpStat();
+}
+function applyUp(P){
+  S.inv=S.inv.filter(x=>!P.ids.includes(x.uid));S.bal=Math.max(0,S.bal-P.m);
+  if(P.won){S.inv.push({uid:P.uid,id:P.tid});S.upW++}else{S.upL++;if(P.cid!=null)S.inv.push({uid:P.cuid,id:P.cid})}
+  P.ids.forEach(u=>sel.delete(u));addM=0;S.pend=null;save();
 }
 function doUpgrade(){
   if(busy||!canGo())return;
-  busy=true;const V=selVal(),T=ITEMS[target],ch=chanceOf(V,T.v);S.bal-=addM;addM=0;
-  const ids=[...sel];S.inv=S.inv.filter(x=>!sel.has(x.uid));sel.clear();
-  const A=ch*360,won=Math.random()<ch,reg=won?[0,A]:[A,360];
-  let landing;
-  landing=reg[0]+Math.random()*(reg[1]-reg[0]);
-  const dur=3600+Math.floor(Math.random()*1800),turns=4+Math.floor(Math.random()*4);
-  let uid=null,cons=null,cc=null;
-  if(won){uid=S.uid++;S.inv.push({uid,id:T.id});S.upW++}else{
-    S.upL++;
-    if(V>150){cc=[...CASES].reverse().find(k=>k.price<=V*.15)||CASES[0];cons=pick(cc);S.inv.push({uid:S.uid++,id:cons.id})}
-  }
-  const resHtml=()=>won?`<p class="win"><b>Успех!</b> ${T.model} · ${T.vr} теперь в инвентаре.</p>`:`<p class="lose"><b>Не повезло.</b> Вложенное (${fmt(V)}) сгорело.</p>`+(cons?`<p class="sub" style="margin:0 0 8px">Утешительный кейс «${cc.name}» (${fmt(cc.price)}) открыт бесплатно. Чем дороже потеря, тем лучше кейс:</p><div class="res" style="min-height:0">${card(cons,{drop:0})}</div>`:"");
-  save();head();
-  const ptr=$("#ptr"),g=$("#goBtn");g.disabled=true;
+  busy=true;const V=selVal(),T=ITEMS[target],ch=chanceOf(V,T.v),A=ch*360,won=Math.random()<ch;
+  const landing=won?A*(.05+.9*Math.random()):A+(360-A)*(.05+.9*Math.random());
+  const dur=4400+Math.floor(Math.random()*1600),turns=5+Math.floor(Math.random()*4);
+  let cons=null,cc=null;
+  if(!won&&V>150){cc=[...CASES].reverse().find(k=>k.price<=V*.15)||CASES[0];cons=pick(cc)}
+  const P={ids:[...sel],m:addM,won,tid:T.id,uid:S.uid++,cid:cons?cons.id:null,cuid:cons?S.uid++:null};
+  S.pend=P;save(); /* результат сохранён заранее, но предметы и деньги спишутся только после прокрутки */
+  const resHtml=()=>won?`<p class="win"><b>Успех!</b> ${T.model} · ${T.vr} теперь в инвентаре.</p>`:`<p class="lose"><b>Не повезло.</b> Вложенное (${fmt(V)}) сгорело.</p>`+(cons?`<p class="sub" style="margin:0 0 8px">Утешительный кейс «${cc.name}» (${fmt(cc.price)}) открыт бесплатно:</p><div class="res" style="min-height:0">${card(cons,{drop:0})}</div>`:"");
+  const ptr=$("#ptr"),g=$("#goBtn"),ring=$("#ring");g.disabled=true;g.textContent="Крутим…";ring&&ring.classList.add("spinning");
+  document.querySelectorAll("#upInv .it").forEach(el=>{if(P.ids.includes(+el.dataset.uid))el.classList.add("staked")});
   const fast=matchMedia("(prefers-reduced-motion:reduce)").matches;
   rot=rot-(rot%360)+360*turns+landing;
-  ptr.style.transition=`transform ${dur}ms cubic-bezier(.1,.75,.12,1)`;
-  void ptr.offsetWidth;ptr.style.transform=`rotate(${rot}deg)`;
-  SND.click();if(!fast)for(let i=0;i<30;i++)setTimeout(SND.tick,(dur-200)*(1-Math.pow(1-i/30,1.8)));
+  ptr.style.transition=`transform ${dur}ms cubic-bezier(.08,.8,.12,1)`;void ptr.offsetWidth;ptr.style.transform=`rotate(${rot}deg)`;
+  SND.click();if(!fast)for(let i=0;i<34;i++)setTimeout(SND.tick,(dur-200)*(1-Math.pow(1-i/34,1.8)));
   setTimeout(()=>{
-    busy=false;head();
-    if(won)SND.win(T.t);else{SND.lose();if(cons)setTimeout(()=>SND.win(cons.t),700)}
-    const r=$("#upRes");if(!r)return;
-    r.innerHTML=resHtml();
-    const gb=$("#goBtn");if(gb)gb.disabled=true;
-    setTimeout(()=>{if(tab==="upg"&&!busy){target=won?null:target;viewUp();const rr=$("#upRes");if(rr)rr.innerHTML=resHtml()}},cons?3500:1600);
+    applyUp(P);busy=false;head();updUpStat();
+    const ri=$("#ring"),mid=$("#ringBox .mid");
+    if(ri){ri.classList.remove("spinning");ri.classList.add(won?"win":"lose")}
+    if(mid)mid.innerHTML=won?'<span class="win">УСПЕХ</span>':'<span class="lose">МИМО</span>';
+    if(won){SND.win(T.t);showReveal(T,P.uid)}else{SND.lose();if(cons)setTimeout(()=>SND.win(cons.t),700)}
+    const r=$("#upRes");if(r)r.innerHTML=resHtml();
+    setTimeout(()=>{if(tab==="upg"&&!busy){target=won?null:target;viewUp();const rr=$("#upRes");if(rr)rr.innerHTML=resHtml()}},cons?3500:2200);
   },fast?200:dur+150);
 }
 
@@ -2034,8 +2078,8 @@ document.addEventListener("click",e=>{const b=e.target.closest("[data-col]");if(
 
 /* ===== деньги в апгрейдере, свои картинки ===== */
 let addM=0;
-const mq=n=>Math.max(0,Math.min(Math.floor(S.bal),Math.floor(n)||0));
-function moneyHtml(){return `<div class="panel mbox" id="mBox"><b>💰 Добавить дропы к ставке</b><div class="tools" style="margin:8px 0 6px"><input type="number" min="0" step="1000" id="mIn" value="${addM||""}" placeholder="0"><button class="btn" data-addm="clear">Сброс</button></div><div class="quick">${[1000,10000,100000,1000000,10000000].map(n=>`<button class="btn" data-addm="${n}">+${num(n)}</button>`).join("")}<button class="btn" data-addm="p10">10%</button><button class="btn" data-addm="p50">50%</button><button class="btn" data-addm="all">Всё</button></div><div class="sub" style="margin:8px 0 0" id="mInfo"></div></div>`}
+const short=n=>n>=1e6?(n/1e6)+"M":n>=1e3?(n/1e3)+"K":""+n;const mq=n=>Math.max(0,Math.min(Math.floor(S.bal),Math.floor(n)||0));
+function moneyHtml(){return `<div class="panel mbox" id="mBox"><b>💰 Добавить дропы к ставке</b><div class="tools" style="margin:8px 0 6px"><input type="number" min="0" step="1000" id="mIn" value="${addM||""}" placeholder="0"><button class="btn" data-addm="clear">Сброс</button></div><div class="quick">${[1000,10000,100000,1000000,10000000].map(n=>`<button class="btn" data-addm="${n}">+${short(n)}</button>`).join("")}<button class="btn" data-addm="p10">10%</button><button class="btn" data-addm="p50">50%</button><button class="btn" data-addm="all">Всё</button></div><div class="sub" style="margin:8px 0 0" id="mInfo"></div></div>`}
 function stakeHtml(mine,V){
   const pics=mine.slice(0,4).map((it,k)=>`<svg class="pic stk" viewBox="0 0 80 48" style="--b:${it.col};--k:${k}" aria-hidden="true">${artFor(it)}${FX[it.vi]}</svg>`).join("");
   return `<div class="it stake" style="--rc:var(--accent)"><div class="stp">${pics}${addM>0?`<span class="mchip">+${num(addM)} ◈</span>`:""}</div><div class="nm">Вложено: ${mine.length?mine.length+" шт.":""}${mine.length&&addM>0?" + ":""}${addM>0?"дропы":""}</div><div class="pr">${fmt(V)}</div></div>`}
@@ -2290,6 +2334,7 @@ $("#reset").addEventListener("click",e=>{
   S={bal:1000,sec:0,uid:1,inv:[],opened:0,upW:0,upL:0,gift:1,gift2:1,gift3:1,gift4:1,gift5:1,gift6:1};sel.clear();target=null;openCase=null;save();rs=false;e.target.textContent="Начать заново";render();toast("Игра сброшена, баланс ◈1 000");
 });
 window.__DBG={ITEMS,CASES,buildVehicle,startDrive,S,BIZ,SETS,MODELS,XM,MP,catOf,bizCalc};
+if(S.pend)applyUp(S.pend);
 render();
 addEventListener("pagehide",save);
 if(giftNow)toast("Подарок: +"+fmt(giftSum)+" на баланс");
