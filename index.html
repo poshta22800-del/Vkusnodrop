@@ -286,7 +286,7 @@ nav button{border-radius:10px}.panel{border-radius:14px;background:linear-gradie
 .vctl{position:absolute;right:8px;bottom:8px;display:flex;gap:6px}.vctl .btn{padding:5px 10px}
 .vst{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px;margin:10px 0}.vst>div{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:8px 10px}.vst small{display:block;color:var(--mute);font-size:11px}.vst b{font:700 14px var(--f-display)}
 .vch{width:100%;height:150px;display:block;background:var(--panel);border:1px solid var(--line);border-radius:10px}
-.vf{display:flex;gap:8px;justify-content:flex-end;margin-top:10px}
+.vf{display:flex;flex-wrap:wrap;align-items:center;gap:8px;justify-content:flex-end;margin-top:10px}.vf .tot{font-size:12px;color:var(--mute);margin-right:auto}.vf .tot b{color:var(--accent);font-size:15px}
 /* ===== v2: графика, анимации, деньги ===== */
 .it .spot{position:absolute;left:50%;top:24px;width:112px;height:58px;margin-left:-56px;background:radial-gradient(closest-side,color-mix(in srgb,var(--rc) 55%,transparent),transparent);opacity:.55;pointer-events:none;transition:opacity .2s}
 .it:hover .spot{opacity:.95}
@@ -318,6 +318,26 @@ nav button{border-radius:10px}.panel{border-radius:14px;background:linear-gradie
 .btn.pri:not(:disabled){animation:btnp 2.6s ease-in-out infinite}
 @keyframes btnp{50%{box-shadow:0 4px 26px #ffbf2e77}}
 @media(prefers-reduced-motion:reduce){.ring.spinning,.ring.win,.ring.lose,.it.staked,.it .spot,.btn.pri:not(:disabled),.fd{animation:none}}
+</style>
+<style>
+.qty{display:flex;flex-wrap:wrap;align-items:center;gap:6px}
+.qty .stp{display:flex;align-items:center;gap:0;border:1px solid var(--line);border-radius:10px;overflow:hidden;background:var(--panel)}
+.qty .stp button{background:var(--panel2);border:0;color:var(--fg);width:34px;height:34px;font:800 18px inherit;cursor:pointer}
+.qty .stp button:hover{background:var(--line)}
+.qty .stp input{width:64px;text-align:center;background:transparent;border:0;color:var(--fg);font:800 15px inherit;height:34px;min-width:0;-moz-appearance:textfield}
+.qty .stp input::-webkit-outer-spin-button,.qty .stp input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+.qty .chips{display:flex;flex-wrap:wrap;gap:5px}
+.qty .chips .btn{padding:5px 9px;font-size:12px}
+#buybar .tot{font-size:12px;color:var(--mute)}
+#buybar .tot b{color:var(--accent);font-size:15px}
+#buybar{max-height:60vh}
+.it .cn{position:absolute;top:4px;left:6px;font-size:11px;font-weight:800;padding:1px 7px;border-radius:99px;background:var(--accent);color:var(--accent-fg);z-index:2}
+.res .it .cn{left:auto;right:6px}
+.sumbar{display:flex;flex-wrap:wrap;gap:8px 16px;align-items:center;margin:0 0 10px;color:var(--mute);font-size:13px}
+.sumbar b{color:var(--fg)}
+.bulkres{display:flex;flex-direction:column;gap:10px;width:100%}
+.bulkres .res2{display:flex;flex-wrap:wrap;gap:10px}
+.bulkres .res2 .it{width:128px;cursor:default}
 </style>
 
 <svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
@@ -1036,7 +1056,7 @@ setInterval(()=>{
   if(tab==="cases"&&openCase==null&&!busy)updateLocks();
   else if(tab==="cases"&&openCase!=null){const b=$("#openBtn");if(b&&!busy)b.disabled=S.bal<CASES[openCase].price*qty}
   if(tab==="upg"&&!busy){const b=$("#goBtn");if(b)b.disabled=!canGo()}
-  if(tab==="cat"&&catSel!=null){const b=$("#buyBtn");if(b)b.disabled=S.bal<buyPrice(ITEMS[catSel])}
+  if(tab==="cat"&&catSel!=null)updBuy()
 },1000);
 function updateLocks(){document.querySelectorAll(".case").forEach(el=>el.classList.toggle("lock",S.bal<CASES[+el.dataset.c].price))}
 
@@ -1055,14 +1075,16 @@ function viewCase(){
   <p class="sub">Шанс выбить дороже кейса: ${Math.round(c.profit*100)}%. Возврат в среднем около ${Math.round(c.rtp*100)}% от цены. Лучший приз: ${order[0][0].model} (${order[0][0].vr}) за ${fmt(order[0][0].v)}.</p>
   <div id="rolls"><div class="roll"><div class="strip">${demo.map(it=>card(it)).join("")}</div></div></div>
   <div class="tools"><span class="sub" style="margin:0">Сколько открыть сразу:</span>
-  <div class="quick" id="qty">${[1,2,3,4,5].map(n=>`<button class="btn${n===qty?" pri":""}" data-qty="${n}">×${n}</button>`).join("")}</div></div>
+  <div class="quick" id="qty">${[1,2,3,5,10,25,50].map(n=>`<button class="btn${!qtyMax&&n===qty?" pri":""}" data-qty="${n}">×${n}</button>`).join("")}<button class="btn${qtyMax?" pri":""}" data-qty="max">MAX</button></div></div>
   <div class="tools"><button class="btn pri" id="openBtn" ${S.bal<c.price*qty?"disabled":""}>${openLabel(c)}</button>
   <label><input type="checkbox" id="fast"> Без анимации</label></div>
   <div class="res" id="res"></div>
   <h2 style="margin-top:18px">Что может выпасть</h2>
   <div class="panel odds">${order.map(([it,w])=>`<div style="color:${TIERS[it.t][2]}"><span>${it.model} · ${it.vr} · ${fmt(it.v)}</span><span class="n">${pct(w*100)}</span></div>`).join("")}</div>`;
 }
-let qty=1;
+let qty=1,qtyMax=false;
+const CASE_CAP=100;
+const maxCases=c=>Math.max(1,Math.min(CASE_CAP,Math.floor(S.bal/c.price)));
 const openLabel=c=>qty>1?`Открыть ×${qty} за ${fmt(c.price*qty)}`:`Открыть за ${fmt(c.price)}`;
 function openOne(){
   if(busy)return;const c=CASES[openCase],n=qty,cost=c.price*n;if(S.bal<cost)return toast("Не хватает денег");
@@ -1072,12 +1094,13 @@ function openOne(){
   save();head();
   $("#openBtn").disabled=true;$("#res").innerHTML="";
   const WIN=50,N=60,W=116;
-  $("#rolls").innerHTML=wins.map(()=>`<div class="roll" style="${n>1?"height:130px;margin:8px 0":""}"><div class="strip"></div></div>`).join("");
+  const BIG=n>5,bestW=wins.reduce((a,b)=>b.v>a.v?b:a),shown=BIG?[bestW]:wins;
+  $("#rolls").innerHTML=shown.map(()=>`<div class="roll" style="${n>1?"height:130px;margin:8px 0":""}"><div class="strip"></div></div>`).join("");
   const fast=$("#fast").checked||matchMedia("(prefers-reduced-motion:reduce)").matches;
   const strips=[...document.querySelectorAll("#rolls .strip")];
   const dur=fast?150:5200;
   strips.forEach((strip,k)=>{
-    const arr=Array.from({length:N},(_,i)=>i===WIN?wins[k]:pick(c));
+    const arr=Array.from({length:N},(_,i)=>i===WIN?shown[k]:pick(c));
     strip.innerHTML=arr.map(it=>card(it)).join("");
     const cw=strip.parentElement.clientWidth,jit=(Math.random()-.5)*50;
     strip.style.transition="none";strip.style.transform="translateX(0)";
@@ -1086,14 +1109,18 @@ function openOne(){
   });
   SND.whoosh();if(!fast)tickLoop(strips[0],dur);
   setTimeout(()=>{
-    busy=false;head();
+    busy=false;head();if(qtyMax&&openCase!=null){qty=maxCases(CASES[openCase]);const ob0=$("#openBtn");if(ob0)ob0.textContent=openLabel(CASES[openCase])}
     const best=wins.reduce((a,b)=>b.v>a.v?b:a),bi=wins.indexOf(best);
     SND.win(best.t);if(best.t>=2)showReveal(best,uids[bi]);
     const r=$("#res");if(!r)return;
     const tot=wins.reduce((s,w)=>s+w.v,0),d=tot-cost;
-    r.innerHTML=wins.map((w,k)=>card(w,{drop:k})).join("")+`<div><div class="${d>=0?"win":"lose"}"><b>${d>=0?"Плюс":"Минус"} ${fmt(Math.abs(d))}</b></div><div class="sub" style="margin:2px 0 8px">Выпало на ${fmt(tot)}. Всё уже в инвентаре.</div><button class="btn" data-sell="${uids.join(",")}">Продать ${n>1?"всё":""} за ${fmt(tot)}</button></div>`;
+    const sumHtml=`<div><div class="${d>=0?"win":"lose"}"><b>${d>=0?"Плюс":"Минус"} ${fmt(Math.abs(d))}</b></div><div class="sub" style="margin:2px 0 8px">Выпало на ${fmt(tot)}. Всё уже в инвентаре.</div><button class="btn" data-sell="${uids.join(",")}">Продать ${n>1?"всё":""} за ${fmt(tot)}</button>${n>1?` <button class="btn" data-sell="${uids.filter((_,i)=>i!==bi).join(",")}">Оставить лучший, продать остальное за ${fmt(tot-best.v)}</button>`:""}</div>`;
+    if(!BIG)r.innerHTML=wins.map((w,k)=>card(w,{drop:k})).join("")+sumHtml;
+    else{const g=new Map();wins.forEach(w=>{const e=g.get(w.id)||{w,n:0};e.n++;g.set(w.id,e)});
+      const rows=[...g.values()].sort((a,b)=>b.w.v-a.w.v);
+      r.innerHTML=`<div class="bulkres">${sumHtml}<div class="sub" style="margin:0">Открыто ${n} кейсов · разных предметов: ${rows.length}</div><div class="res2">${rows.map(e=>card(e.w,{drop:0}).replace('<i class="spot">',`<i class="spot">`).replace(/<span class="tg">/,`<span class="cn">×${e.n}</span><span class="tg">`)).join("")}</div></div>`}
     const b=$("#openBtn");if(b)b.disabled=S.bal<cost;
-  },dur+(n-1)*350+120);
+  },dur+(shown.length-1)*350+120);
 }
 
 /* ---------- инвентарь ---------- */
@@ -1102,19 +1129,29 @@ function controls(){return `<div class="tools"><input type="search" id="q" place
 <select id="rf"><option value="all">Все редкости</option>${TIERS.map((t,i)=>`<option value="${i}" ${rf==""+i?"selected":""}>${t[1]}</option>`).join("")}</select>
 <select id="sb"><option value="asc" ${sortBy==="asc"?"selected":""}>Сначала дешёвые</option><option value="desc" ${sortBy==="desc"?"selected":""}>Сначала дорогие</option><option value="name" ${sortBy==="name"?"selected":""}>По названию</option></select></div>`}
 function filt(a){return a.filter(it=>(rf==="all"||it.t==rf)&&(!q||(it.model+" "+it.vr).toLowerCase().includes(q.toLowerCase())))}
+let invGroup=false,invLimit=120;
 function viewInv(){
   const all=invItems();const total=all.reduce((s,i)=>s+i.v,0);
   [...sel].forEach(u=>{if(!S.inv.some(x=>x.uid===u))sel.delete(u)});
   const list=sortList(filt(all));
   const sv=all.filter(i=>sel.has(i.uid)).reduce((s,i)=>s+i.v,0);
-  $("#main").innerHTML=`<h2>Инвентарь</h2><p class="sub">${all.length} предметов на ${fmt(total)}. Нажми на предмет, чтобы выбрать.</p>${controls()}
-  <div class="tools"><button class="btn" id="selAll">Выбрать показанные</button><button class="btn" id="selJunk">Выбрать хлам</button><button class="btn" id="selNone">Снять выбор</button>
+  $("#main").innerHTML=`<h2>Инвентарь</h2><p class="sub">${all.length} предметов на ${fmt(total)}. Нажми на предмет, чтобы выбрать${invGroup?" (на группу — выбрать все одинаковые)":""}.</p>${controls()}
+  <div class="tools"><button class="btn${invGroup?" pri":""}" id="invGrp">${invGroup?"Группы: вкл":"Группировать одинаковые"}</button><button class="btn" id="selAll">Выбрать показанные</button><button class="btn" id="selJunk">Выбрать хлам</button><button class="btn" id="selNone">Снять выбор</button>
   <button class="btn pri" id="sellSel" ${sel.size?"":"disabled"}>Продать выбранные ${sel.size?"("+sel.size+") за "+fmt(sv):""}</button>
   <button class="btn" id="toUp" ${sel.size?"":"disabled"}>В апгрейдер</button></div>
-  <div class="grid" id="list">${list.length?list.map(it=>card(it,{uid:it.uid,sel:sel.has(it.uid),btn:1})).join(""):'<p class="sub">Пусто. Открой кейс или купи предмет через апгрейд.</p>'}</div>`;
+  ${sel.size?`<div class="sumbar"><span>Выбрано: <b>${sel.size}</b></span><span>На сумму: <b>${fmt(sv)}</b></span></div>`:""}
+  <div class="grid" id="list">${invCards(list)}</div>${invMore(list)}`;
 }
+function invCards(list){
+  if(!list.length)return '<p class="sub">Пусто. Открой кейс или купи предмет в каталоге.</p>';
+  if(!invGroup)return list.slice(0,invLimit).map(it=>card(it,{uid:it.uid,sel:sel.has(it.uid),btn:1})).join("");
+  const g=new Map();list.forEach(it=>{const e=g.get(it.id);e?e.u.push(it.uid):g.set(it.id,{it,u:[it.uid]})});
+  const rows=[...g.values()].slice(0,invLimit);
+  return rows.map(e=>{const all=e.u.every(u=>sel.has(u));return card(e.it,{uid:e.u[0],sel:all,btn:1}).replace('<span class="tg">',(e.u.length>1?`<span class="cn">×${e.u.length}</span>`:"")+'<span class="tg">').replace('data-uid="'+e.u[0]+'"','data-uid="'+e.u[0]+'" data-grp="'+e.u.join(",")+'"')}).join("");
+}
+function invMore(list){const n=invGroup?new Set(list.map(i=>i.id)).size:list.length;return n>invLimit?`<p style="text-align:center"><button class="btn" id="invMore">Показать ещё (${n-invLimit})</button></p>`:""}
 function sell(uids){
-  let g=0;uids.forEach(u=>{const k=S.inv.findIndex(x=>x.uid===u);if(k>=0){g+=ITEMS[S.inv[k].id].v;S.inv.splice(k,1);sel.delete(u)}});
+  let g=0;const us=new Set(uids);S.inv=S.inv.filter(x=>{if(us.has(x.uid)){g+=ITEMS[x.id].v;sel.delete(x.uid);return false}return true});
   S.bal+=g;save();head();if(g){toast("Продано на "+fmt(g));SND.coin()}return g;
 }
 
@@ -1196,21 +1233,36 @@ function viewCat(){
   ${moversHtml()}<p class="sub" id="cnt">Показано: ${Math.min(list.length,catLimit)} из ${list.length}. Нажми на предмет, чтобы купить.</p><div class="grid">${list.slice(0,catLimit).map(it=>card(it,{id:it.id,sel:catSel===it.id,btn:1})).join("")}</div>${list.length>catLimit?'<p style="text-align:center"><button class="btn" id="more">Показать ещё</button></p>':""}<div class="catpad"></div><div id="buybar" hidden></div>`;
   renderBuy();
 }
-let catSel=null,catLimit=120;
+let catSel=null,catLimit=120,bq=1;
+const BUY_CAP=500;
+const maxBuy=p=>Math.max(1,Math.min(BUY_CAP,Math.floor(S.bal/p)));
 const BUY_MARKUP=1.2;
 const buyPrice=it=>Math.ceil(it.v*BUY_MARKUP);
 function renderBuy(){
   const b=$("#buybar");if(!b)return;
   if(catSel==null){b.hidden=true;return}
   const it=ITEMS[catSel],p=buyPrice(it);
+  bq=Math.max(1,Math.min(BUY_CAP,bq|0||1));
   b.hidden=false;
-  b.innerHTML=`<svg class="pic" viewBox="0 0 80 48" style="--b:${it.col}" aria-hidden="true">${artFor(it)}${FX[it.vi]}</svg><div class="info"><b>${it.model} · ${it.vr}</b><span>Цена ${fmt(p)}. Продать потом можно за ${fmt(it.v)}.</span></div><button class="btn pri" id="buyBtn" ${S.bal>=p?"":"disabled"}>Купить за ${fmt(p)}</button><button class="btn" id="buyX">Закрыть</button>`;
+  b.innerHTML=`<svg class="pic" viewBox="0 0 80 48" style="--b:${it.col}" aria-hidden="true">${artFor(it)}${FX[it.vi]}</svg><div class="info"><b>${it.model} · ${it.vr}</b><span>Цена за штуку ${fmt(p)} · продажа ${fmt(it.v)}</span></div>
+  <div class="qty"><div class="stp"><button type="button" id="bqm" aria-label="Меньше">−</button><input id="bq" type="number" inputmode="numeric" min="1" max="${BUY_CAP}" value="${bq}" aria-label="Количество"><button type="button" id="bqp" aria-label="Больше">+</button></div>
+  <div class="chips">${[1,5,10,25,100].map(n=>`<button class="btn" data-bq="${n}">×${n}</button>`).join("")}<button class="btn" data-bq="max">MAX</button></div></div>
+  <div class="tot" id="bqTot"></div>
+  <button class="btn pri" id="buyBtn">Купить</button><button class="btn" id="buyX">Закрыть</button>`;
+  updBuy();
 }
+function updBuy(){
+  if(catSel==null)return;const it=ITEMS[catSel],p=buyPrice(it),tot=p*bq,ok=S.bal>=tot;
+  const t=$("#bqTot"),bb=$("#buyBtn");
+  if(t)t.innerHTML=`Итого: <b>${fmt(tot)}</b>${ok?"":" · не хватает "+fmt(tot-S.bal)}`;
+  if(bb){bb.disabled=!ok;bb.textContent=bq>1?`Купить ×${bq}`:`Купить за ${fmt(p)}`}
+}
+function setBq(n){const it=ITEMS[catSel];bq=Math.max(1,Math.min(BUY_CAP,Math.floor(+n)||1));const i=$("#bq");if(i&&+i.value!==bq&&document.activeElement!==i)i.value=bq;updBuy()}
 function buyItem(){
-  if(catSel==null)return;const it=ITEMS[catSel],p=buyPrice(it);
-  if(S.bal<p)return toast("Не хватает денег");
-  S.bal-=p;S.inv.push({uid:S.uid++,id:it.id});save();head();
-  toast("Куплено: "+it.model+" · "+it.vr);SND.coin();renderBuy();
+  if(catSel==null)return;const it=ITEMS[catSel],p=buyPrice(it),n=bq,cost=p*n;
+  if(S.bal<cost)return toast("Не хватает денег");
+  S.bal-=cost;for(let k=0;k<n;k++)S.inv.push({uid:S.uid++,id:it.id});save();head();
+  toast(n>1?`Куплено ×${n}: ${it.model} · ${it.vr} за ${fmt(cost)}`:"Куплено: "+it.model+" · "+it.vr);SND.coin();updBuy();
 }
 
 /* ---------- 3D-игра ---------- */
@@ -2243,7 +2295,7 @@ function openVM(id){if(!window.THREE)return toast("3D-движок не загр
   el.innerHTML=`<div class="vbox" style="--rc:${tc[2]}"><div class="vh"><div><b>${it.model}</b> <span style="color:${tc[2]}">${it.vr} · ${tc[1]}</span></div><button class="btn" data-vm="x">✕</button></div>
   <div class="vcv"><canvas id="vcv"></canvas><div class="vhint">↔ тяни, чтобы повернуть на 360° · колесо — масштаб</div><div class="vctl"><button class="btn" data-vm="l">⟲</button><button class="btn" data-vm="a">⏸ Авто</button><button class="btn" data-vm="r">⟳</button></div></div>
   <div id="vstats"></div><canvas id="vch" class="vch"></canvas>
-  <div class="vf"><button class="btn pri" id="vbuy" data-vm="buy:${id}"></button><button class="btn" data-vm="x">Закрыть</button></div></div>`;
+  <div class="vf"><div class="qty"><div class="stp"><button type="button" data-vq="-1" aria-label="Меньше">−</button><input id="vq" type="number" inputmode="numeric" min="1" max="${BUY_CAP}" value="${bq}" aria-label="Количество"><button type="button" data-vq="+1" aria-label="Больше">+</button></div><div class="chips">${[1,5,10,25,100].map(n=>`<button class="btn" data-vq="${n}">×${n}</button>`).join("")}<button class="btn" data-vq="max">MAX</button></div></div><span class="tot" id="vqTot"></span><button class="btn pri" id="vbuy" data-vm="buy:${id}"></button><button class="btn" data-vm="x">Закрыть</button></div></div>`;
   document.body.appendChild(el);
   const cv=el.querySelector("#vcv"),R=new T.WebGLRenderer({canvas:cv,antialias:true,alpha:true});R.setPixelRatio(Math.min(2,devicePixelRatio));R.outputEncoding=T.sRGBEncoding;R.toneMapping=T.ACESFilmicToneMapping;R.shadowMap.enabled=true;
   const sc=new T.Scene(),cam=new T.PerspectiveCamera(40,1,.1,100);
@@ -2270,14 +2322,19 @@ function openVM(id){if(!window.THREE)return toast("3D-движок не загр
     car.wh&&car.wh.forEach&&0;R.render(sc,cam)})(last);
   vmUpd();SND.whoosh()}
 function vmUpd(){if(!VM)return;const it=VM.it,cv=VM.el.querySelector("#vch");if(!cv)return;const st=drawChart(cv,it);VM.el.querySelector("#vstats").innerHTML=vmStatsHtml(it,st);
-  const b=VM.el.querySelector("#vbuy"),p=buyPrice(it);b.textContent="Купить за "+fmt(p);b.disabled=S.bal<p}
+  vmBuyUpd()}
+function vmBuyUpd(){if(!VM)return;const it=VM.it,p=buyPrice(it),tot=p*bq,ok=S.bal>=tot,b=VM.el.querySelector("#vbuy"),t=VM.el.querySelector("#vqTot");
+  if(b){b.textContent=bq>1?`Купить ×${bq}`:"Купить за "+fmt(p);b.disabled=!ok}
+  if(t)t.innerHTML=`${bq>1?fmt(p)+" × "+bq+" = ":"Итого: "}<b>${fmt(tot)}</b>${ok?"":" · не хватает "+fmt(tot-S.bal)}`}
+function vmSetQ(n,sync){bq=Math.max(1,Math.min(BUY_CAP,Math.floor(+n)||1));const i=VM&&VM.el.querySelector("#vq");if(i&&sync)i.value=bq;vmBuyUpd()}
 function closeVM(){if(!VM)return;cancelAnimationFrame(VM.raf);removeEventListener("resize",VM.resize);try{VM.R.dispose()}catch(e){}VM.el.remove();VM=null}
 document.addEventListener("click",e=>{
+  const vq=e.target.closest("[data-vq]");if(vq&&VM){e.stopPropagation();const v=vq.dataset.vq;vmSetQ(v==="max"?maxBuy(buyPrice(VM.it)):v==="+1"?bq+1:v==="-1"?bq-1:+v,1);return}
   const z=e.target.closest("[data-zoom]");if(z){e.stopPropagation();e.preventDefault();openVM(+z.dataset.zoom);return}
   if(tab==="cat"){const c=e.target.closest(".it[data-id]");if(c&&!e.target.closest("#vmodal")){e.stopPropagation();openVM(+c.dataset.id);return}}
   const b=e.target.closest("[data-vm]");if(b&&VM){e.stopPropagation();const k=b.dataset.vm.split(":");
     if(k[0]==="x")closeVM();else if(k[0]==="l"){VM.auto=false;VM.yaw-=.785;VM.sync()}else if(k[0]==="r"){VM.auto=false;VM.yaw+=.785;VM.sync()}else if(k[0]==="a"){VM.auto=!VM.auto;VM.sync()}
-    else if(k[0]==="buy"){const it=ITEMS[+k[1]],p=buyPrice(it);if(S.bal<p)return toast("Не хватает денег");S.bal-=p;S.inv.push({uid:S.uid++,id:it.id});save();head();SND.coin();toast("Куплено: "+it.model+" · "+it.vr);vmUpd()}return}
+    else if(k[0]==="buy"){const it=ITEMS[+k[1]],p=buyPrice(it),n=bq,cost=p*n;if(S.bal<cost)return toast("Не хватает денег");S.bal-=cost;for(let i=0;i<n;i++)S.inv.push({uid:S.uid++,id:it.id});save();head();SND.coin();toast(n>1?`Куплено ×${n}: ${it.model} · ${it.vr} за ${fmt(cost)}`:"Куплено: "+it.model+" · "+it.vr);vmUpd()}return}
   if(VM&&e.target===VM.el)closeVM()},true);
 addEventListener("keydown",e=>{if(e.key==="Escape"&&VM)closeVM()});
 
@@ -2287,7 +2344,7 @@ function restoreFocus(id,pos){const e=document.getElementById(id);if(e){e.focus(
 
 document.addEventListener("click",e=>{
   const t=e.target.closest("[data-tab]");
-  if(t){if(busy)return;tab=t.dataset.tab;if(tab!=='upg')addM=0;openCase=null;q="";rf="all";catSel=null;catLimit=120;render();return}
+  if(t){if(busy)return;tab=t.dataset.tab;if(tab!=='upg')addM=0;openCase=null;q="";rf="all";catSel=null;catLimit=120;invLimit=120;render();return}
   const cs=e.target.closest(".case");if(cs&&!busy){openCase=+cs.dataset.c;render();return}
   if(e.target.id==="back"&&!busy){openCase=null;render();return}
   if(e.target.id==="openBtn"){openOne();return}
@@ -2296,12 +2353,14 @@ document.addEventListener("click",e=>{
   if(e.target.id==="revClose"||e.target.id==="reveal"){$("#reveal").hidden=true;return}
   if(sl){sell(sl.dataset.sell.split(",").map(Number));sl.disabled=true;sl.textContent="Продано";if(sl.id==="revSell")$("#reveal").hidden=true;return}
   const qb=e.target.closest("[data-qty]");
-  if(qb&&!busy){qty=+qb.dataset.qty;document.querySelectorAll("#qty .btn").forEach(b=>b.classList.toggle("pri",+b.dataset.qty===qty));const c=CASES[openCase],ob=$("#openBtn");ob.textContent=openLabel(c);ob.disabled=S.bal<c.price*qty;return}
+  if(qb&&!busy){const c=CASES[openCase];qtyMax=qb.dataset.qty==="max";qty=qtyMax?maxCases(c):+qb.dataset.qty;document.querySelectorAll("#qty .btn").forEach(b=>b.classList.toggle("pri",qtyMax?b.dataset.qty==="max":+b.dataset.qty===qty));const ob=$("#openBtn");ob.textContent=openLabel(c);ob.disabled=S.bal<c.price*qty;return}
   if(e.target.id==="goBtn"){doUpgrade();return}
   if(e.target.id==="selAll"){invItems().filter(i=>(rf==="all"||i.t==rf)&&(!q||(i.model+" "+i.vr).toLowerCase().includes(q.toLowerCase()))).forEach(i=>sel.add(i.uid));viewInv();return}
   if(e.target.id==="more"){catLimit+=120;viewCat();return}
   if(e.target.id==="selJunk"){invItems().filter(i=>i.t===0).forEach(i=>sel.add(i.uid));viewInv();return}
   if(e.target.id==="selNone"){sel.clear();viewInv();return}
+  if(e.target.id==="invGrp"){invGroup=!invGroup;invLimit=120;viewInv();return}
+  if(e.target.id==="invMore"){invLimit+=120;viewInv();return}
   if(e.target.id==="sellSel"){sell([...sel]);viewInv();return}
   if(e.target.id==="toUp"){tab="upg";q="";render();return}
   const m=e.target.closest("[data-m]");
@@ -2311,19 +2370,26 @@ document.addEventListener("click",e=>{
     if(!best)return toast("Целей выше нет");target=best.id;renderTargets();renderRing();return}
   const it=e.target.closest(".it[data-uid]");
   if(it&&!busy&&(tab==="inv"||tab==="upg")){
+    const grp=it.dataset.grp?it.dataset.grp.split(",").map(Number):null;
+    if(grp){const all=grp.every(x=>sel.has(x));grp.forEach(x=>all?sel.delete(x):sel.add(x));if(tab==="inv")viewInv();else{if(target!=null&&ITEMS[target].v<=selVal())target=null;renderTargets();renderRing()}return}
     const u=+it.dataset.uid;sel.has(u)?sel.delete(u):sel.add(u);
     if(tab==="inv")viewInv();else{if(target!=null&&ITEMS[target].v<=selVal())target=null;it.classList.toggle("sel",sel.has(u));renderTargets();renderRing()}
     return}
   if(e.target.id==="buyBtn"){buyItem();return}
+  if(e.target.id==="bqm"){setBq(bq-1);const i=$("#bq");if(i)i.value=bq;return}
+  if(e.target.id==="bqp"){setBq(bq+1);const i=$("#bq");if(i)i.value=bq;return}
+  const bqb=e.target.closest("[data-bq]");
+  if(bqb&&catSel!=null){setBq(bqb.dataset.bq==="max"?maxBuy(buyPrice(ITEMS[catSel])):+bqb.dataset.bq);const i=$("#bq");if(i)i.value=bq;return}
   if(e.target.id==="buyX"){catSel=null;document.querySelectorAll(".it.sel").forEach(x=>x.classList.remove("sel"));renderBuy();return}
   const tg=e.target.closest(".it[data-id]");
   if(tg&&tab==="cat"){catSel=+tg.dataset.id;document.querySelectorAll(".it.sel").forEach(x=>x.classList.remove("sel"));tg.classList.add("sel");renderBuy();return}
   if(tg&&tab==="upg"&&!busy){target=+tg.dataset.id;renderTargets();renderRing();return}
 });
-document.addEventListener("keydown",e=>{if(e.key==="Escape"){const r=$("#reveal");if(r&&!r.hidden){r.hidden=true;return}}if((e.key==="Enter"||e.key===" ")&&e.target.matches(".it[role=button]")){e.preventDefault();e.target.click()}});
+document.addEventListener("keydown",e=>{if(e.target.id==="vq"&&e.key==="Enter"){e.preventDefault();e.target.value=bq;const b=$("#vbuy");if(b&&!b.disabled)b.click();return}if(e.key==="Escape"){const r=$("#reveal");if(r&&!r.hidden){r.hidden=true;return}}if((e.key==="Enter"||e.key===" ")&&e.target.matches(".it[role=button]")){e.preventDefault();e.target.click()}});
 document.addEventListener("input",e=>{
   const id=e.target.id;
   if(id==="q"){catLimit=120;q=e.target.value;const p=e.target.selectionStart;tab==="inv"?viewInv():viewCat();restoreFocus("q",p)}
+  else if(id==="vq"){vmSetQ(e.target.value,0)}
   else if(id==="tq"){q=e.target.value;renderTargets()}
   else if(id==="rf"){rf=e.target.value;tab==="inv"?viewInv():viewCat()}
   else if(id==="sb"){sortBy=e.target.value;tab==="inv"?viewInv():viewCat()}
