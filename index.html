@@ -320,6 +320,12 @@ nav button{border-radius:10px}.panel{border-radius:14px;background:linear-gradie
 @media(prefers-reduced-motion:reduce){.ring.spinning,.ring.win,.ring.lose,.it.staked,.it .spot,.btn.pri:not(:disabled),.fd{animation:none}}
 </style>
 <style>
+.ring{touch-action:none;cursor:grab;user-select:none;-webkit-user-select:none}.ring:active{cursor:grabbing}
+.zbar{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;align-items:center}.zbar .btn{padding:5px 10px;font-size:12px}.zbar .zt{font-size:12px;color:var(--mute);min-width:92px;text-align:center}
+.zhint{font-size:11px;color:var(--mute);text-align:center;margin:0}
+.risk{display:flex;gap:14px;flex-wrap:wrap;justify-content:center;font-size:12px;color:var(--mute)}.risk b.g{color:#46d38a}.risk b.r{color:#ff5a6e}
+.uph{width:100%;max-width:320px;display:flex;flex-direction:column;gap:3px;font-size:12px}.uph>div{display:flex;justify-content:space-between;gap:8px;padding:3px 8px;border-radius:6px;background:var(--panel2)}.uph .w{color:#46d38a}.uph .l{color:#ff5a6e}.uph span:first-child{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.chs{display:flex;align-items:center;gap:8px;margin-top:8px;font-size:12px;color:var(--mute)}.chs input{flex:1;min-width:0;accent-color:var(--accent)}.chs b{color:var(--accent);min-width:38px;text-align:right}
 .qty{display:flex;flex-wrap:wrap;align-items:center;gap:6px}
 .qty .stp{display:flex;align-items:center;gap:0;border:1px solid var(--line);border-radius:10px;overflow:hidden;background:var(--panel)}
 .qty .stp button{background:var(--panel2);border:0;color:var(--fg);width:34px;height:34px;font:800 18px inherit;cursor:pointer}
@@ -360,6 +366,7 @@ nav button{border-radius:10px}.panel{border-radius:14px;background:linear-gradie
 <main id="main"></main>
 <footer>
   <span id="stats"></span>
+  <button class="btn" id="expSave">💾 Сохранить в файл</button><button class="btn" id="impSave">📂 Загрузить</button><input type="file" id="impFile" accept=".json,application/json" hidden>
   <button class="btn" id="reset">Начать заново</button>
 </footer>
 </div>
@@ -973,7 +980,7 @@ let S={bal:1000,sec:0,uid:1,inv:[],opened:0,upW:0,upL:0,gift:0};
 try{const r=localStorage.getItem(KEY);if(r){const o=JSON.parse(r);if(o&&typeof o.bal==="number"&&Array.isArray(o.inv))S=Object.assign(S,o)}}catch(e){}
 let giftNow=false;
 if(!S.gift3){S.gift3=1;S.gift2=1;S.gift=1;try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}}
-const save=()=>{try{colScan()}catch(e){}try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}};
+const save=()=>{if(window.__ns)return;try{colScan()}catch(e){}try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}};
 let giftSum=giftNow?100000:0;
 if(!S.gift4){S.gift4=1;save()}
 if(!S.gift5){S.gift5=1;save()}
@@ -1077,7 +1084,7 @@ function viewCase(){
   <div class="tools"><span class="sub" style="margin:0">Сколько открыть сразу:</span>
   <div class="quick" id="qty">${[1,2,3,5,10,25,50].map(n=>`<button class="btn${!qtyMax&&n===qty?" pri":""}" data-qty="${n}">×${n}</button>`).join("")}<button class="btn${qtyMax?" pri":""}" data-qty="max">MAX</button></div></div>
   <div class="tools"><button class="btn pri" id="openBtn" ${S.bal<c.price*qty?"disabled":""}>${openLabel(c)}</button>
-  <label><input type="checkbox" id="fast"> Без анимации</label></div>
+  <label><input type="checkbox" id="fast"> Без анимации</label><label title="Предметы дешевле цены кейса сразу продаются"><input type="checkbox" id="autoS" ${S.autoSell?"checked":""}> Автопродажа хлама</label></div>
   <div class="res" id="res"></div>
   <h2 style="margin-top:18px">Что может выпасть</h2>
   <div class="panel odds">${order.map(([it,w])=>`<div style="color:${TIERS[it.t][2]}"><span>${it.model} · ${it.vr} · ${fmt(it.v)}</span><span class="n">${pct(w*100)}</span></div>`).join("")}</div>`;
@@ -1090,7 +1097,9 @@ function openOne(){
   if(busy)return;const c=CASES[openCase],n=qty,cost=c.price*n;if(S.bal<cost)return toast("Не хватает денег");
   busy=true;S.bal-=cost;S.opened+=n;
   const wins=[],uids=[];
-  for(let k=0;k<n;k++){const w=pick(c),u=S.uid++;S.inv.push({uid:u,id:w.id});wins.push(w);uids.push(u)}
+  let auto=0,autoN=0;
+  for(let k=0;k<n;k++){const w=pick(c),u=S.uid++;if(S.autoSell&&w.v<c.price){auto+=w.v;autoN++;uids.push(null)}else{S.inv.push({uid:u,id:w.id});uids.push(u)}wins.push(w)}
+  S.bal+=auto;
   save();head();
   $("#openBtn").disabled=true;$("#res").innerHTML="";
   const WIN=50,N=60,W=116;
@@ -1111,10 +1120,10 @@ function openOne(){
   setTimeout(()=>{
     busy=false;head();if(qtyMax&&openCase!=null){qty=maxCases(CASES[openCase]);const ob0=$("#openBtn");if(ob0)ob0.textContent=openLabel(CASES[openCase])}
     const best=wins.reduce((a,b)=>b.v>a.v?b:a),bi=wins.indexOf(best);
-    SND.win(best.t);if(best.t>=2)showReveal(best,uids[bi]);
+    SND.win(best.t);if(best.t>=2&&uids[bi]!=null)showReveal(best,uids[bi]);
     const r=$("#res");if(!r)return;
-    const tot=wins.reduce((s,w)=>s+w.v,0),d=tot-cost;
-    const sumHtml=`<div><div class="${d>=0?"win":"lose"}"><b>${d>=0?"Плюс":"Минус"} ${fmt(Math.abs(d))}</b></div><div class="sub" style="margin:2px 0 8px">Выпало на ${fmt(tot)}. Всё уже в инвентаре.</div><button class="btn" data-sell="${uids.join(",")}">Продать ${n>1?"всё":""} за ${fmt(tot)}</button>${n>1?` <button class="btn" data-sell="${uids.filter((_,i)=>i!==bi).join(",")}">Оставить лучший, продать остальное за ${fmt(tot-best.v)}</button>`:""}</div>`;
+    const tot=wins.reduce((s,w)=>s+w.v,0),d=tot-cost,ku=uids.filter(u=>u!=null),keptV=wins.reduce((s,w,i)=>uids[i]!=null?s+w.v:s,0);
+    const sumHtml=`<div><div class="${d>=0?"win":"lose"}"><b>${d>=0?"Плюс":"Минус"} ${fmt(Math.abs(d))}</b></div><div class="sub" style="margin:2px 0 8px">Выпало на ${fmt(tot)}. ${autoN?`Автопродано хлама: ${autoN} на ${fmt(auto)}. `:""}${ku.length?"Остальное уже в инвентаре.":""}</div>${ku.length?`<button class="btn" data-sell="${ku.join(",")}">Продать ${ku.length>1?"всё":""} за ${fmt(keptV)}</button>`:""}${ku.length>1?` <button class="btn" data-sell="${uids.filter((_,i)=>i!==bi&&uids[i]!=null).join(",")}">Оставить лучший, продать остальное за ${fmt(keptV-(uids[bi]!=null?best.v:0))}</button>`:""}</div>`;
     if(!BIG)r.innerHTML=wins.map((w,k)=>card(w,{drop:k})).join("")+sumHtml;
     else{const g=new Map();wins.forEach(w=>{const e=g.get(w.id)||{w,n:0};e.n++;g.set(w.id,e)});
       const rows=[...g.values()].sort((a,b)=>b.w.v-a.w.v);
@@ -1136,7 +1145,7 @@ function viewInv(){
   const list=sortList(filt(all));
   const sv=all.filter(i=>sel.has(i.uid)).reduce((s,i)=>s+i.v,0);
   $("#main").innerHTML=`<h2>Инвентарь</h2><p class="sub">${all.length} предметов на ${fmt(total)}. Нажми на предмет, чтобы выбрать${invGroup?" (на группу — выбрать все одинаковые)":""}.</p>${controls()}
-  <div class="tools"><button class="btn${invGroup?" pri":""}" id="invGrp">${invGroup?"Группы: вкл":"Группировать одинаковые"}</button><button class="btn" id="selAll">Выбрать показанные</button><button class="btn" id="selJunk">Выбрать хлам</button><button class="btn" id="selNone">Снять выбор</button>
+  <div class="tools"><button class="btn${invGroup?" pri":""}" id="invGrp">${invGroup?"Группы: вкл":"Группировать одинаковые"}</button><button class="btn" id="selAll">Выбрать показанные</button><button class="btn" id="selJunk">Выбрать хлам</button><button class="btn" id="selDup" title="Выбрать все копии, кроме одной каждого предмета">Выбрать дубли</button><button class="btn" id="selNone">Снять выбор</button>
   <button class="btn pri" id="sellSel" ${sel.size?"":"disabled"}>Продать выбранные ${sel.size?"("+sel.size+") за "+fmt(sv):""}</button>
   <button class="btn" id="toUp" ${sel.size?"":"disabled"}>В апгрейдер</button></div>
   ${sel.size?`<div class="sumbar"><span>Выбрано: <b>${sel.size}</b></span><span>На сумму: <b>${fmt(sv)}</b></span></div>`:""}
@@ -1160,53 +1169,66 @@ const RTP=.92;
 const selVal=()=>invItems().filter(i=>sel.has(i.uid)).reduce((s,i)=>s+i.v,0)+addM;
 const chanceOf=(V,T)=>Math.min(.92,V/T*RTP);
 const canGo=()=>target!=null&&(sel.size>0||addM>0)&&ITEMS[target].v>selVal()&&S.bal>=addM;
-let rot=0;
+let rot=0,zoneOff=S.zoneOff||0,zDrag=false,tgtLimit=150;
 function viewUp(){
   const all=sortList(invItems().sort((a,b)=>b.v-a.v));
   [...sel].forEach(u=>{if(!S.inv.some(x=>x.uid===u))sel.delete(u)});
   $("#main").innerHTML=`<h2>Апгрейдер</h2><p class="sub">Выбери свои предметы слева и цель справа. Шанс равен стоимости вложенного, делённой на стоимость цели, с поправкой ${Math.round(RTP*100)}%. Проиграешь, и вложенное сгорает.</p>
   <div class="up"><div class="col"><div class="panel"><b>Твои предметы</b> <span id="selInfo" class="sub"></span>
-    ${moneyHtml()}<div class="scroll grid" id="upInv" style="margin-top:8px">${all.length?all.map(it=>card(it,{uid:it.uid,sel:sel.has(it.uid),btn:1})).join(""):'<p class="sub">Инвентарь пуст. Открой кейс.</p>'}</div></div>
+    ${moneyHtml()}<div class="tools" style="margin:8px 0 0"><button class="btn" id="upAll">Выбрать все</button><button class="btn" id="upNone">Снять выбор</button></div><div class="scroll grid" id="upInv" style="margin-top:8px">${all.length?all.map(it=>card(it,{uid:it.uid,sel:sel.has(it.uid),btn:1})).join(""):'<p class="sub">Инвентарь пуст. Открой кейс.</p>'}</div></div>
     <div class="ringbox panel" id="ringBox"></div></div>
   <div class="col"><div class="panel"><b>Цель</b><div class="tools" style="margin:8px 0"><input type="search" id="tq" placeholder="Найти цель" value="${q.replace(/"/g,"&quot;")}"></div>
     <div class="quick" id="quick">${[2,3,5,10,25,100].map(m=>`<button class="btn" data-m="${m}">×${m}</button>`).join("")}</div>
+    <div class="chs"><span>Желаемый шанс</span><input type="range" id="chS" min="2" max="92" value="50"><b id="chV">50%</b></div>
     <div class="scroll grid" id="tgt" style="margin-top:10px"></div></div></div></div>`;
-  renderTargets();renderRing(0);syncMoney();
+  tgtLimit=150;renderTargets();renderRing(0);syncMoney();
 }
 function renderTargets(){
   const V=selVal(),box=$("#tgt");if(!box)return;
   let list=ITEMS.filter(it=>V>0?(it.v>V&&it.v<=V*200):true);
   if(q)list=list.filter(it=>(it.model+" "+it.vr).toLowerCase().includes(q.toLowerCase()));
-  list=list.slice(0,150);
-  box.innerHTML=V===0?'<p class="sub">Сначала выбери свои предметы.</p>':list.length?list.map(it=>card(it,{id:it.id,sel:target===it.id,btn:1,ch:pct(chanceOf(V,it.v)*100)})).join(""):'<p class="sub">Ничего не найдено. Выбери побольше своих предметов или другой запрос.</p>';
+  const tot=list.length;list=list.slice(0,tgtLimit);
+  box.innerHTML=V===0?'<p class="sub">Сначала выбери свои предметы.</p>':list.length?list.map(it=>card(it,{id:it.id,sel:target===it.id,btn:1,ch:pct(chanceOf(V,it.v)*100)})).join("")+(tot>tgtLimit?`<p style="grid-column:1/-1;text-align:center;margin:4px"><button class="btn" id="tgtMore">Показать ещё (${tot-tgtLimit})</button></p>`:""):'<p class="sub">Ничего не найдено. Выбери побольше своих предметов или другой запрос.</p>';
   const si=$("#selInfo");if(si)si.textContent=sel.size?`· выбрано ${sel.size} на ${fmt(V)}`:"";
 }
-function updUpStat(){const e=$("#upStat");if(!e)return;const n=S.upW+S.upL;e.innerHTML=`Удачных апгрейдов: <b>${S.upW} из ${n}</b>${n?" · "+Math.round(S.upW/n*100)+"%":""}`}
+function updUpStat(){const e=$("#upStat");if(!e)return;const n=S.upW+S.upL;const net=S.upNet||0;e.innerHTML=`Удачных апгрейдов: <b>${S.upW} из ${n}</b>${n?" · "+Math.round(S.upW/n*100)+"%":""}${n?` · итог: <b style="color:${net>=0?"#46d38a":"#ff5a6e"}">${net>=0?"+":"−"}${fmt(Math.abs(net))}</b>`:""}`}
 function renderRing(ang){
   const V=selVal(),T=target!=null?ITEMS[target]:null,has=T&&V>0&&T.v>V;
   const ch=has?chanceOf(V,T.v):0,C=2*Math.PI*80,ac=ch>=.5?"#46d38a":ch>=.2?"#ffbf2e":"#ff5a6e";
   const mine=invItems().filter(i=>sel.has(i.uid)),x=has?T.v/V:0;
   $("#ringBox").innerHTML=`<div class="ring" id="ring" style="--ac:${ac}"><svg viewBox="0 0 200 200"><circle cx="100" cy="100" r="80" fill="none" stroke="#0d1014" stroke-width="16"/><circle cx="100" cy="100" r="80" fill="none" stroke="#ff5a6e" stroke-opacity=".22" stroke-width="16"/>
-  <circle class="arc" cx="100" cy="100" r="80" fill="none" stroke="${ac}" stroke-width="16" stroke-dasharray="${C*ch} ${C}"/><circle cx="100" cy="100" r="92" fill="none" stroke="#fff" stroke-opacity=".18" stroke-width="3" stroke-dasharray="1.2 8.43"/></svg>
+  <circle class="arc" cx="100" cy="100" r="80" fill="none" stroke="${ac}" stroke-width="16" stroke-dasharray="${C*ch} ${C}" transform="rotate(${zoneOff} 100 100)"/><circle cx="100" cy="100" r="92" fill="none" stroke="#fff" stroke-opacity=".18" stroke-width="3" stroke-dasharray="1.2 8.43"/></svg>
   <div class="ptr" id="ptr" style="transform:rotate(${rot}deg)"></div>
   <div class="mid">${has?pct(ch*100):"—"}<small>${has?"шанс · ×"+x.toFixed(x>=10?0:1).replace(".",","):"выбери цель"}</small></div></div>
   <div class="pair">${(mine.length||addM>0)?stakeHtml(mine,V):""}${T?`<span class="arrow">→</span>${card(T)}`:""}</div>
-  <button class="btn pri" id="goBtn" ${canGo()&&!busy?"":"disabled"}>Апгрейд</button><div class="upstat" id="upStat"></div><div id="upRes"></div>`;
+  ${has?`<div class="risk"><span>Выигрыш: <b class="g">+${fmt(T.v-V)}</b></span><span>Риск: <b class="r">−${fmt(V)}</b></span><span>${ch>=.5?"низкий риск":ch>=.2?"средний риск":"высокий риск"}</span></div>`:""}
+  <div class="zbar"><button class="btn" data-z="-15" title="Сдвинуть зону влево">◀</button><span class="zt" id="zoneTxt">Зона: ${Math.round(zoneOff)}°</span><button class="btn" data-z="15" title="Сдвинуть зону вправо">▶</button><button class="btn" data-z="rnd">🎲 Случайно</button><button class="btn" data-z="0">Сброс</button></div>
+  <p class="zhint">Тяни зону по кругу, чтобы поставить её где хочешь. Шанс от позиции не зависит.</p>
+  <button class="btn pri" id="goBtn" ${canGo()&&!busy?"":"disabled"}>Апгрейд</button><div class="upstat" id="upStat"></div><div id="upRes"></div>
+  ${(S.upHist||[]).length?`<div class="uph"><b style="font-size:12px;color:var(--mute)">Последние апгрейды</b>${S.upHist.slice(0,8).map(h=>`<div><span class="${h.w?"w":"l"}">${h.w?"✔":"✘"} ${h.nm}</span><span>${h.w?"+"+fmt(h.tv-h.v):"−"+fmt(h.v)}</span></div>`).join("")}</div>`:""}`;
   updUpStat();
 }
+function setZone(v,persist){zoneOff=((v%360)+360)%360;const a=$("#ring .arc");if(a)a.setAttribute("transform",`rotate(${zoneOff} 100 100)`);const t=$("#zoneTxt");if(t)t.textContent="Зона: "+Math.round(zoneOff)+"°";if(persist){S.zoneOff=zoneOff;save()}}
+function curChance(){const V=selVal(),T=target!=null?ITEMS[target]:null;return T&&V>0&&T.v>V?chanceOf(V,T.v):0}
+function zMove(e){const r=$("#ring");if(!r)return;const b=r.getBoundingClientRect(),dx=e.clientX-(b.left+b.width/2),dy=e.clientY-(b.top+b.height/2);setZone(Math.atan2(dx,-dy)*180/Math.PI-curChance()*180)}
+document.addEventListener("pointerdown",e=>{if(busy||tab!=="upg"||!e.target.closest("#ring"))return;zDrag=true;zMove(e);e.preventDefault()});
+document.addEventListener("pointermove",e=>{if(zDrag)zMove(e)});
+document.addEventListener("pointerup",()=>{if(zDrag){zDrag=false;S.zoneOff=zoneOff;save()}});
+document.addEventListener("pointercancel",()=>{zDrag=false});
 function applyUp(P){
   S.inv=S.inv.filter(x=>!P.ids.includes(x.uid));S.bal=Math.max(0,S.bal-P.m);
+  S.upNet=(S.upNet||0)+(P.won?(P.tv||0)-(P.v||0):-(P.v||0));S.upHist=S.upHist||[];if(P.nm){S.upHist.unshift({w:P.won?1:0,nm:P.nm,v:P.v,tv:P.tv});if(S.upHist.length>12)S.upHist.pop()}
   if(P.won){S.inv.push({uid:P.uid,id:P.tid});S.upW++}else{S.upL++;if(P.cid!=null)S.inv.push({uid:P.cuid,id:P.cid})}
   P.ids.forEach(u=>sel.delete(u));addM=0;S.pend=null;save();
 }
 function doUpgrade(){
   if(busy||!canGo())return;
   busy=true;const V=selVal(),T=ITEMS[target],ch=chanceOf(V,T.v),A=ch*360,won=Math.random()<ch;
-  const landing=won?A*(.05+.9*Math.random()):A+(360-A)*(.05+.9*Math.random());
+  const landing=((won?A*(.05+.9*Math.random()):A+(360-A)*(.05+.9*Math.random()))+zoneOff)%360;
   const dur=4400+Math.floor(Math.random()*1600),turns=5+Math.floor(Math.random()*4);
   let cons=null,cc=null;
   if(!won&&V>150){cc=[...CASES].reverse().find(k=>k.price<=V*.15)||CASES[0];cons=pick(cc)}
-  const P={ids:[...sel],m:addM,won,tid:T.id,uid:S.uid++,cid:cons?cons.id:null,cuid:cons?S.uid++:null};
+  const P={ids:[...sel],m:addM,won,nm:T.model+" · "+T.vr,v:V,tv:T.v,tid:T.id,uid:S.uid++,cid:cons?cons.id:null,cuid:cons?S.uid++:null};
   S.pend=P;save(); /* результат сохранён заранее, но предметы и деньги спишутся только после прокрутки */
   const resHtml=()=>won?`<p class="win"><b>Успех!</b> ${T.model} · ${T.vr} теперь в инвентаре.</p>`:`<p class="lose"><b>Не повезло.</b> Вложенное (${fmt(V)}) сгорело.</p>`+(cons?`<p class="sub" style="margin:0 0 8px">Утешительный кейс «${cc.name}» (${fmt(cc.price)}) открыт бесплатно:</p><div class="res" style="min-height:0">${card(cons,{drop:0})}</div>`:"");
   const ptr=$("#ptr"),g=$("#goBtn"),ring=$("#ring");g.disabled=true;g.textContent="Крутим…";ring&&ring.classList.add("spinning");
@@ -2355,10 +2377,18 @@ document.addEventListener("click",e=>{
   const qb=e.target.closest("[data-qty]");
   if(qb&&!busy){const c=CASES[openCase];qtyMax=qb.dataset.qty==="max";qty=qtyMax?maxCases(c):+qb.dataset.qty;document.querySelectorAll("#qty .btn").forEach(b=>b.classList.toggle("pri",qtyMax?b.dataset.qty==="max":+b.dataset.qty===qty));const ob=$("#openBtn");ob.textContent=openLabel(c);ob.disabled=S.bal<c.price*qty;return}
   if(e.target.id==="goBtn"){doUpgrade();return}
+  const zb=e.target.closest("[data-z]");
+  if(zb&&!busy){const z=zb.dataset.z;setZone(z==="rnd"?Math.random()*360:z==="0"?0:zoneOff+ +z,true);return}
+  if(e.target.id==="upAll"&&!busy){invItems().forEach(i=>sel.add(i.uid));if(target!=null&&ITEMS[target].v<=selVal())target=null;viewUp();return}
+  if(e.target.id==="upNone"&&!busy){sel.clear();target=null;viewUp();return}
+  if(e.target.id==="tgtMore"){tgtLimit+=150;renderTargets();return}
   if(e.target.id==="selAll"){invItems().filter(i=>(rf==="all"||i.t==rf)&&(!q||(i.model+" "+i.vr).toLowerCase().includes(q.toLowerCase()))).forEach(i=>sel.add(i.uid));viewInv();return}
   if(e.target.id==="more"){catLimit+=120;viewCat();return}
   if(e.target.id==="selJunk"){invItems().filter(i=>i.t===0).forEach(i=>sel.add(i.uid));viewInv();return}
   if(e.target.id==="selNone"){sel.clear();viewInv();return}
+  if(e.target.id==="selDup"){const seen=new Set();invItems().sort((a,b)=>a.uid-b.uid).forEach(i=>{seen.has(i.id)?sel.add(i.uid):seen.add(i.id)});viewInv();return}
+  if(e.target.id==="expSave"){try{const b=new Blob([JSON.stringify(S)],{type:"application/json"}),a=document.createElement("a");a.href=URL.createObjectURL(b);a.download="vkusno-drop-save.json";document.body.appendChild(a);a.click();a.remove();toast("Сохранение скачано")}catch(_){toast("Не удалось сохранить")}return}
+  if(e.target.id==="impSave"){$("#impFile").click();return}
   if(e.target.id==="invGrp"){invGroup=!invGroup;invLimit=120;viewInv();return}
   if(e.target.id==="invMore"){invLimit+=120;viewInv();return}
   if(e.target.id==="sellSel"){sell([...sel]);viewInv();return}
@@ -2390,6 +2420,9 @@ document.addEventListener("input",e=>{
   const id=e.target.id;
   if(id==="q"){catLimit=120;q=e.target.value;const p=e.target.selectionStart;tab==="inv"?viewInv():viewCat();restoreFocus("q",p)}
   else if(id==="vq"){vmSetQ(e.target.value,0)}
+  else if(id==="chS"){const ch=+e.target.value/100,cv=$("#chV");if(cv)cv.textContent=e.target.value+"%";const V=selVal();if(!V||busy)return;const want=V*RTP/ch;let best=null;for(const it of ITEMS){if(it.v>V&&(best==null||Math.abs(it.v-want)<Math.abs(best.v-want)))best=it}if(best){target=best.id;renderTargets();renderRing()}}
+  else if(id==="autoS"){S.autoSell=e.target.checked;save()}
+  else if(id==="impFile"){const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{try{const o=JSON.parse(r.result);if(!o||typeof o.bal!=="number"||!Array.isArray(o.inv))throw 0;window.__ns=true;localStorage.setItem(KEY,JSON.stringify(o));location.reload()}catch(_){window.__ns=false;toast("Файл не подходит")}};r.readAsText(f)}
   else if(id==="tq"){q=e.target.value;renderTargets()}
   else if(id==="rf"){rf=e.target.value;tab==="inv"?viewInv():viewCat()}
   else if(id==="sb"){sortBy=e.target.value;tab==="inv"?viewInv():viewCat()}
@@ -2397,7 +2430,7 @@ document.addEventListener("input",e=>{
 let rs=false;
 $("#reset").addEventListener("click",e=>{
   if(!rs){rs=true;e.target.textContent="Точно? Нажми ещё раз";setTimeout(()=>{rs=false;e.target.textContent="Начать заново"},3000);return}
-  S={bal:1000,sec:0,uid:1,inv:[],opened:0,upW:0,upL:0,gift:1,gift2:1,gift3:1,gift4:1,gift5:1,gift6:1};sel.clear();target=null;openCase=null;save();rs=false;e.target.textContent="Начать заново";render();toast("Игра сброшена, баланс ◈1 000");
+  S={bal:1000,sec:0,uid:1,inv:[],opened:0,upW:0,upL:0,gift:1,gift2:1,gift3:1,gift4:1,gift5:1,gift6:1};sel.clear();target=null;openCase=null;zoneOff=0;save();rs=false;e.target.textContent="Начать заново";render();toast("Игра сброшена, баланс ◈1 000");
 });
 window.__DBG={ITEMS,CASES,buildVehicle,startDrive,S,BIZ,SETS,MODELS,XM,MP,catOf,bizCalc};
 if(S.pend)applyUp(S.pend);
