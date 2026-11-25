@@ -354,6 +354,15 @@ body::before{content:"";position:fixed;inset:0;pointer-events:none;z-index:-1;ba
 .ord .tm{height:5px;background:#0d1014;border-radius:3px;overflow:hidden}.ord .tm i{display:block;height:100%;background:var(--dc);transition:width 1s linear}
 .ord .acts{display:flex;gap:8px;flex-wrap:wrap}.ord .acts .btn{flex:1}
 .ord .pg{font-size:12px}.ord .pg.ok{color:#46d38a}.ord .pg.no{color:#ff8a8a}
+.ctr{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(300px,1fr);gap:14px;align-items:start}@media(max-width:860px){.ctr{grid-template-columns:1fr}}
+.ctr .scroll{max-height:520px;overflow:auto;padding:2px}
+.ctsum{position:sticky;top:8px;display:flex;flex-direction:column;gap:10px}
+.ctsum .big{font:800 26px var(--f-display);color:var(--accent)}.ctsum .cnt{font-size:13px;color:var(--mute)}.ctsum .cnt b{color:var(--fg)}
+.risks{display:flex;flex-direction:column;gap:8px}
+.risk3{display:block;width:100%;text-align:left;background:var(--panel2);border:2px solid var(--line);border-radius:12px;padding:10px 12px;color:var(--fg);cursor:pointer;transition:border-color .15s,transform .15s,box-shadow .15s}
+.risk3:hover{transform:translateY(-1px)}.risk3[aria-pressed=true]{border-color:var(--rk);box-shadow:0 0 0 1px var(--rk),0 0 22px -8px var(--rk)}
+.risk3 .rn{display:flex;justify-content:space-between;font-weight:800;color:var(--rk)}.risk3 .rr{font:700 16px var(--f-display);margin:2px 0}.risk3 small{color:var(--mute);font-size:11px}
+#ctRoll{margin:0}#ctRes .res{min-height:0}
 .ring{touch-action:none;cursor:grab;user-select:none;-webkit-user-select:none}.ring:active{cursor:grabbing}
 .zbar{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;align-items:center}.zbar .btn{padding:5px 10px;font-size:12px}.zbar .zt{font-size:12px;color:var(--mute);min-width:92px;text-align:center}
 .zhint{font-size:11px;color:var(--mute);text-align:center;margin:0}
@@ -1082,7 +1091,7 @@ function head(){
   $("#incLbl").textContent="+10 ◈ через "+(60-S.sec%60)+" с";
   $("#snd").textContent=muted?"Звук: выкл":"Звук: вкл";
   $("#stats").textContent=`Предметов в каталоге: ${ITEMS.length} · Кейсов: ${CASES.length} · Открыто: ${S.opened} · Апгрейды: ${S.upW} из ${S.upW+S.upL}`;
-  const tb=[["cases","Кейсы",CASES.length],["biz","💼 Бизнес",""],["drive","🏎️ Играть",""],["col","🏆 Коллекции",""],["upg","Апгрейдер",""],["ord","📑 Контракты",ordReady()||""],["goals","🎯 Цели",""],["inv","Инвентарь",S.inv.length],["cat","Каталог",ITEMS.length]];
+  const tb=[["cases","Кейсы",CASES.length],["biz","💼 Бизнес",""],["drive","🏎️ Играть",""],["col","🏆 Коллекции",""],["upg","Апгрейдер",""],["ctr","🔀 Контракты",""],["ord","📑 Заказы",ordReady()||""],["goals","🎯 Цели",""],["inv","Инвентарь",S.inv.length],["cat","Каталог",ITEMS.length]];
   $("#tabs").innerHTML=tb.map(t=>`<button role="tab" data-tab="${t[0]}" aria-selected="${tab===t[0]}">${t[1]}${t[2]!==""?`<span class="cnt">${t[2]}</span>`:""}</button>`).join("");
 }
 let lastT=Date.now();
@@ -2235,7 +2244,7 @@ addEventListener("pointerdown",()=>{if(musOn&&!MU.run)musStart()},{passive:true}
 document.addEventListener("click",e=>{if(e.target.id==="mus"){musOn=!musOn;try{localStorage.setItem("vd-music",musOn?"1":"0")}catch(_){}if(musOn)musStart();setMus();SND.click()}});
 setMus();
 const lvXP=n=>Math.round(60*n*n+40*n);
-const xpNow=()=>Math.floor((S.bizTot||0)/40000+(S.opened||0)*3+(S.upW||0)*12+Object.keys(S.colDone||{}).length*150+Object.keys(S.ach||{}).length*60+(S.drives||0)*5+(S.ctrDone||0)*20+(S.ordDone||0)*15);
+const xpNow=()=>Math.floor((S.bizTot||0)/40000+(S.opened||0)*3+(S.upW||0)*12+Object.keys(S.colDone||{}).length*150+Object.keys(S.ach||{}).length*60+(S.drives||0)*5+(S.ctrDone||0)*20+(S.ordDone||0)*15+(S.ctN||0)*8);
 function plvl(){const x=xpNow();let l=0;while(x>=lvXP(l+1))l++;return {l,x,a:lvXP(l),b:lvXP(l+1)}}
 const TECH=[
 ["inc","📈","Маркетинговый отдел","+6% к доходу всех бизнесов за уровень",2e6,3.2,5,60],
@@ -2289,7 +2298,8 @@ const ACH=[
 ["tech","🔬","Учёный","Уровней исследований",()=>Object.values(S.tech||{}).reduce((a,b)=>a+b,0),[1,5,12,22],[1e6,1e7,2e8,2e9]],
 ["drive","🏎️","Гонщик","Поездок в 3D",()=>S.drives||0,[1,10,50,200],[20000,300000,5e6,5e7]],
 ["ctr","📜","Подрядчик","Выполнено контрактов",()=>S.ctrDone||0,[1,10,50,200],[1e5,2e6,5e7,1e9]],
-["ord","📑","Посредник","Сдано контрактов на машины",()=>S.ordDone||0,[1,10,50,200],[2e4,3e5,5e6,1e8]]
+["ord","📑","Посредник","Выполнено заказов клиентов",()=>S.ordDone||0,[1,10,50,200],[2e4,3e5,5e6,1e8]],
+["ctr2","🔀","Контрактор","Подписано контрактов",()=>S.ctN||0,[1,10,50,200],[1e4,2e5,4e6,8e7]]
 ];
 function achCheck(){S.ach=S.ach||{};let got=0;ACH.forEach(a=>{const v=a[4]();a[5].forEach((g,i)=>{const k=a[0]+":"+i;if(v>=g&&!S.ach[k]){S.ach[k]=1;S.bal+=a[6][i];got++;toast("🎯 "+a[2]+" ★"+(i+1)+": +"+fmt(a[6][i]));SND.level()}})});if(got){save();head()}}
 const dayStr=d=>d.getFullYear()+"-"+(d.getMonth()+1)+"-"+d.getDate();
@@ -2299,7 +2309,63 @@ function dailyClaim(){const i=dailyInfo();if(!i.can)return;const k=i.next;S.dail
   if(k===7){const c=CASES.find(c=>c.price>=25000000),w=pick(c);S.inv.push({uid:S.uid++,id:w.id});extra=" + "+w.model}
   save();head();SND.win(k>=7?6:3);toast("🎁 День "+k+": +"+fmt(dayReward(k))+extra);const o=$("#dailyov");if(o)o.remove();if(tab==="goals")viewGoals()}
 function dailyBox(){const i=dailyInfo();return `<div class="panel daily"><b>🎁 Ежедневная награда</b><div class="days">${[1,2,3,4,5,6,7].map(k=>{const done=!i.can?k<=i.next:k<i.next;return `<div class="day${done?" got":""}${i.can&&k===i.next?" now":""}"><small>День ${k}</small><b>${k===7?"🚗":"🎁"}</b><span>${fmt(dayReward(k))}</span></div>`}).join("")}</div>${i.can?`<button class="btn pri" data-v2="daily">Забрать день ${i.next}</button>`:`<p class="sub" style="margin:8px 0 0">Награда получена. Возвращайся завтра, на 7-й день подарок — машина.</p>`}</div>`}
-/* ===== Контракты клиентов: сдай нужные машины за премию ===== */
+/* ===== Контракты: 3–10 предметов → один предмет, риск на выбор ===== */
+const ctSel=new Set();let ctRisk=S.ctRisk||0;
+const CT_RTP=.95;
+const CT_RISK=[["Низкий","#46d38a",.75,1.25],["Средний","#ffbf2e",.4,2],["Высокий","#ff5a6e",.1,5]].map(r=>{const k=(r[3]-r[2])/(CT_RTP-r[2])-1,x=Math.pow((1-r[2])/(r[3]-r[2]),1/k);return {n:r[0],c:r[1],lo:r[2],hi:r[3],k,win:1-x}});
+const refList=()=>tab==="inv"?viewInv():tab==="ctr"?viewCtr():viewCat();
+let ITS=null;
+function ctrPick(T,lo,hi){
+  if(!ITS)ITS=ITEMS.slice().sort((a,b)=>a.v-b.v);
+  const a=Math.max(lo,T*.93),b=Math.min(hi,T*1.07);
+  const lb=x=>{let l=0,h=ITS.length;while(l<h){const m=(l+h)>>1;if(ITS[m].v<x)l=m+1;else h=m}return l};
+  let i=lb(a),j=lb(b+1e-9);
+  if(j>i)return ITS[i+(Math.random()*(j-i)|0)];
+  const k=Math.min(ITS.length-1,lb(T));let best=ITS[k];if(k>0&&Math.abs(ITS[k-1].v-T)<Math.abs(best.v-T))best=ITS[k-1];return best}
+function ctrSum(){
+  const items=invItems().filter(i=>ctSel.has(i.uid)),V=items.reduce((s,i)=>s+i.v,0),n=items.length,ok=n>=3&&n<=10;
+  const el=$("#ctSum");if(!el)return;
+  el.innerHTML=`<b>Контракт</b><div class="cnt">Предметов: <b>${n}</b> из 3–10</div><div class="big">${fmt(V)}</div><div class="cnt">суммарная стоимость вложенного</div>
+  <div class="risks">${CT_RISK.map((r,i)=>`<button type="button" class="risk3" style="--rk:${r.c}" aria-pressed="${ctRisk===i}" data-cr="${i}"><span class="rn"><span>${r.n} риск</span><span>в плюс ${Math.round(r.win*100)}%</span></span><div class="rr">${V?fmt(V*r.lo)+" – "+fmt(V*r.hi):"×"+r.lo+" – ×"+r.hi}</div><small>от ${Math.round(r.lo*100)}% до ${Math.round(r.hi*100)}% от суммы · в среднем возврат около ${Math.round(CT_RTP*100)}%</small></button>`).join("")}</div>
+  <button class="btn pri" id="ctGo" ${ok&&!busy?"":"disabled"}>${ok?"Подписать контракт":n<3?"Добавь ещё "+(3-n):"Максимум 10 предметов"}</button>
+  <div class="cnt">Контрактов подписано: <b>${S.ctN||0}</b> · итог: <b style="color:${(S.ctNet||0)>=0?"#46d38a":"#ff5a6e"}">${(S.ctNet||0)>=0?"+":"−"}${fmt(Math.abs(S.ctNet||0))}</b></div>
+  <div id="ctRoll"></div><div id="ctRes"></div>`}
+function viewCtr(){
+  [...ctSel].forEach(u=>{if(!S.inv.some(x=>x.uid===u))ctSel.delete(u)});
+  const list=sortList(filt(invItems()));
+  $("#main").innerHTML=`<h2>Контракты</h2><p class="sub">Положи от 3 до 10 предметов и выбери риск. Ты получишь один случайный предмет: чем ниже риск, тем ближе его цена к сумме вложенного, чем выше, тем больше разброс, от почти пустышки до огромного выигрыша.</p>
+  <div class="ctr"><div class="panel">${controls()}<div class="tools"><button class="btn" id="ctCheap">10 самых дешёвых</button><button class="btn" id="ctNone">Снять выбор</button></div>
+  <div class="scroll grid" id="ctList">${list.length?list.slice(0,300).map(it=>card(it,{uid:it.uid,sel:ctSel.has(it.uid),btn:1})).join(""):'<p class="sub">Инвентарь пуст. Открой кейс или купи машины в каталоге.</p>'}</div></div>
+  <div class="panel ctsum" id="ctSum"></div></div>`;
+  ctrSum()}
+function ctrGo(){
+  if(busy)return;const items=invItems().filter(i=>ctSel.has(i.uid));
+  if(items.length<3||items.length>10)return toast("Нужно от 3 до 10 предметов");
+  const V=items.reduce((s,i)=>s+i.v,0),R=CT_RISK[ctRisk],m=R.lo+(R.hi-R.lo)*Math.pow(Math.random(),R.k),w=ctrPick(V*m,V*R.lo,V*R.hi);
+  busy=true;const us=new Set(items.map(i=>i.uid)),uid=S.uid++;
+  S.inv=S.inv.filter(x=>!us.has(x.uid));S.inv.push({uid,id:w.id});ctSel.clear();
+  S.ctN=(S.ctN||0)+1;S.ctNet=(S.ctNet||0)+w.v-V;save();head();
+  const roll=$("#ctRoll"),res=$("#ctRes");$("#ctGo").disabled=true;
+  document.querySelectorAll("#ctList .it.sel").forEach(e=>e.classList.remove("sel"));
+  const WIN=30,N=40,W=116,fast=matchMedia("(prefers-reduced-motion:reduce)").matches,dur=fast?150:4200;
+  roll.innerHTML='<div class="roll"><div class="strip"></div></div>';
+  const strip=roll.querySelector(".strip");
+  const near=()=>{const t=V*(R.lo+(R.hi-R.lo)*Math.pow(Math.random(),R.k));return ctrPick(t,V*R.lo,V*R.hi)};
+  strip.innerHTML=Array.from({length:N},(_,i)=>card(i===WIN?w:near())).join("");
+  const cw=strip.parentElement.clientWidth,jit=(Math.random()-.5)*50;
+  strip.style.transition="none";strip.style.transform="translateX(0)";void strip.offsetWidth;
+  strip.style.transition=`transform ${dur}ms cubic-bezier(.1,.7,.1,1)`;strip.style.transform=`translateX(${-(WIN*W+54-cw/2+jit)}px)`;
+  SND.whoosh();if(!fast)tickLoop(strip,dur);
+  setTimeout(()=>{
+    busy=false;head();const d=w.v-V;SND.win(w.t);if(w.t>=2)showReveal(w,uid);
+    const r=$("#ctRes");if(!r)return;
+    r.innerHTML=`<div class="res" style="margin-top:8px">${card(w,{drop:0})}<div><div class="${d>=0?"win":"lose"}"><b>${d>=0?"Плюс":"Минус"} ${fmt(Math.abs(d))}</b></div><div class="sub" style="margin:2px 0 8px">Вложено ${fmt(V)}, получено ${fmt(w.v)} (${Math.round(w.v/V*100)}%). Предмет уже в инвентаре.</div><button class="btn" data-sell="${uid}">Продать за ${fmt(w.v)}</button></div></div>`;
+    const list=$("#ctList");if(list){const keep=list.scrollTop;const l2=sortList(filt(invItems()));list.innerHTML=l2.slice(0,300).map(it=>card(it,{uid:it.uid,sel:false,btn:1})).join("");list.scrollTop=keep}
+    const g=$("#ctGo");if(g){g.textContent="Подписать контракт";g.disabled=true}
+    const sm=$("#ctSum .big");if(sm)sm.textContent=fmt(0);
+  },dur+150);
+}
+/* ===== Заказы клиентов: сдай нужные машины за премию ===== */
 const ORD_RANKS=[[0,"Новичок",0],[5,"Агент",.05],[15,"Брокер",.1],[40,"Магнат",.18],[100,"Легенда",.3]];
 const ORD_DIFF=[["Обычный","#5aa9ff",1.3,20],["Сложный","#b06cff",1.6,30],["Элитный","#ffd34d",2,45]];
 function ordRank(){const n=S.ordDone||0;let i=0;ORD_RANKS.forEach((r,k)=>{if(n>=r[0])i=k});return {i,r:ORD_RANKS[i],next:ORD_RANKS[i+1]}}
@@ -2331,7 +2397,7 @@ const ordFind=o=>invItems().filter(it=>ordMatch(o.sp,it)).sort((a,b)=>a.v-b.v);
 function ordEst(o,have){const g=have.slice(0,o.n),V=g.length>=o.n?g.reduce((s,i)=>s+i.v,0):ITEMS[o.seed].v*o.n;return Math.round(V*ordMult(o))}
 function ordReady(){return (S.orders||[]).filter(o=>ordFind(o).length>=o.n).length}
 function ordTick(){S.orders=S.orders||[];const now=Date.now();let ch=false;
-  S.orders=S.orders.filter(o=>{if(now>=o.until){S.ordStreak=0;S.ordExp=(S.ordExp||0)+1;ch=true;toast("📑 Контракт истёк, серия сброшена");return false}return true});
+  S.orders=S.orders.filter(o=>{if(now>=o.until){S.ordStreak=0;S.ordExp=(S.ordExp||0)+1;ch=true;toast("📑 Заказ истёк, серия сброшена");return false}return true});
   while(S.orders.length<ordSlots()){S.orders.push(ordNew());ch=true}
   if(ch){save();head();if(tab==="ord"&&!busy)viewOrd()}}
 function ordAct(a){
@@ -2342,7 +2408,7 @@ function ordAct(a){
     S.inv=S.inv.filter(x=>!us.has(x.uid));us.forEach(u=>sel.delete(u));
     S.bal+=rew;S.ordDone=(S.ordDone||0)+1;S.ordStreak=(S.ordStreak||0)+1;S.ordBest=Math.max(S.ordBest||0,S.ordStreak);S.ordTot=(S.ordTot||0)+rew;
     S.orders=S.orders.map(x=>x===o?ordNew():x);
-    const up=ordRank();save();head();SND.cash();toast(`📑 Контракт сдан: +${fmt(rew)} (на ${fmt(rew-V)} больше продажи)`);achCheck();viewOrd();return}
+    const up=ordRank();save();head();SND.cash();toast(`📑 Заказ сдан: +${fmt(rew)} (на ${fmt(rew-V)} больше продажи)`);achCheck();viewOrd();return}
   if(op==="rr"){const c=Math.max(10,Math.round(ordEst(o,ordFind(o))*.08));if(S.bal<c)return toast("Не хватает денег");S.bal-=c;S.orders=S.orders.map(x=>x===o?ordNew():x);save();head();SND.click();viewOrd()}
 }
 function ordCard(o){
@@ -2355,7 +2421,7 @@ function ordCard(o){
 const ordTime=u=>{const t=Math.max(0,Math.ceil((u-Date.now())/1000)),m=t/60|0,s=t%60;return m+":"+String(s).padStart(2,"0")};
 function viewOrd(){
   ordTick();const R=ordRank(),n=S.ordDone||0,st=S.ordStreak||0;
-  $("#main").innerHTML=`<h2>Контракты</h2><p class="sub">Клиенты ищут конкретные машины и платят больше рыночной цены. Подходящие предметы берутся из инвентаря автоматически, самые дешёвые из подходящих. Не успел до конца таймера, и серия сбросится.</p>
+  $("#main").innerHTML=`<h2>Заказы клиентов</h2><p class="sub">Клиенты ищут конкретные машины и платят больше рыночной цены. Подходящие предметы берутся из инвентаря автоматически, самые дешёвые из подходящих. Не успел до конца таймера, и серия сбросится.</p>
   <div class="panel ordhead"><div><small>Ранг</small><span class="rk">${R.r[1]}</span><small>бонус к наградам +${Math.round(R.r[2]*100)}% · слотов ${ordSlots()}</small></div>
   <div><small>Серия подряд</small><b style="font-size:20px">${st}</b><small>бонус +${Math.min(50,st*5)}% (макс. +50%)</small></div>
   <div><small>Сдано / истекло</small><b style="font-size:20px">${n} / ${S.ordExp||0}</b><small>лучшая серия ${S.ordBest||0} · заработано ${fmt(S.ordTot||0)}</small></div>
@@ -2461,7 +2527,7 @@ document.addEventListener("click",e=>{
 addEventListener("keydown",e=>{if(e.key==="Escape"&&VM)closeVM()});
 
 /* ---------- роутинг ---------- */
-function render(){head();{const m=$("#main");if(m){m.style.animation="none";void m.offsetWidth;m.style.animation=""}}({ord:viewOrd,cases:viewCases,drive:viewDrive,upg:viewUp,inv:viewInv,cat:viewCat,biz:viewBiz,col:viewCol,goals:viewGoals})[tab]()}
+function render(){head();{const m=$("#main");if(m){m.style.animation="none";void m.offsetWidth;m.style.animation=""}}({ctr:viewCtr,ord:viewOrd,cases:viewCases,drive:viewDrive,upg:viewUp,inv:viewInv,cat:viewCat,biz:viewBiz,col:viewCol,goals:viewGoals})[tab]()}
 function restoreFocus(id,pos){const e=document.getElementById(id);if(e){e.focus();try{e.setSelectionRange(pos,pos)}catch(_){}}}
 
 document.addEventListener("click",e=>{
@@ -2478,6 +2544,14 @@ document.addEventListener("click",e=>{
   if(qb&&!busy){const c=CASES[openCase];qtyMax=qb.dataset.qty==="max";qty=qtyMax?maxCases(c):+qb.dataset.qty;document.querySelectorAll("#qty .btn").forEach(b=>b.classList.toggle("pri",qtyMax?b.dataset.qty==="max":+b.dataset.qty===qty));const ob=$("#openBtn");ob.textContent=openLabel(c);ob.disabled=S.bal<c.price*qty;return}
   if(e.target.id==="goBtn"){doUpgrade();return}
   const oa=e.target.closest("[data-oa]");if(oa){ordAct(oa.dataset.oa);return}
+  if(tab==="ctr"){
+    const cr=e.target.closest("[data-cr]");if(cr&&!busy){ctRisk=+cr.dataset.cr;S.ctRisk=ctRisk;save();ctrSum();return}
+    if(e.target.id==="ctGo"){ctrGo();return}
+    if(e.target.id==="ctNone"&&!busy){ctSel.clear();viewCtr();return}
+    if(e.target.id==="ctCheap"&&!busy){ctSel.clear();sortList(filt(invItems())).sort((a,b)=>a.v-b.v).slice(0,10).forEach(i=>ctSel.add(i.uid));viewCtr();return}
+    const ci=e.target.closest(".it[data-uid]");
+    if(ci&&!busy&&ci.closest("#ctList")){const u=+ci.dataset.uid;if(ctSel.has(u)){ctSel.delete(u);ci.classList.remove("sel")}else{if(ctSel.size>=10)return toast("Максимум 10 предметов");ctSel.add(u);ci.classList.add("sel")}ctrSum();return}
+  }
   const zb=e.target.closest("[data-z]");
   if(zb&&!busy){const z=zb.dataset.z;setZone(z==="rnd"?Math.random()*360:z==="0"?0:zoneOff+ +z,true);return}
   if(e.target.id==="upAll"&&!busy){invItems().forEach(i=>sel.add(i.uid));if(target!=null&&ITEMS[target].v<=selVal())target=null;viewUp();return}
@@ -2519,21 +2593,21 @@ document.addEventListener("click",e=>{
 document.addEventListener("keydown",e=>{if(e.target.id==="vq"&&e.key==="Enter"){e.preventDefault();e.target.value=bq;const b=$("#vbuy");if(b&&!b.disabled)b.click();return}if(e.key==="Escape"){const r=$("#reveal");if(r&&!r.hidden){r.hidden=true;return}}if((e.key==="Enter"||e.key===" ")&&e.target.matches(".it[role=button]")){e.preventDefault();e.target.click()}});
 document.addEventListener("input",e=>{
   const id=e.target.id;
-  if(id==="q"){catLimit=120;q=e.target.value;const p=e.target.selectionStart;tab==="inv"?viewInv():viewCat();restoreFocus("q",p)}
+  if(id==="q"){catLimit=120;q=e.target.value;const p=e.target.selectionStart;refList();restoreFocus("q",p)}
   else if(id==="vq"){vmSetQ(e.target.value,0)}
   else if(id==="chS"){const ch=+e.target.value/100,cv=$("#chV");if(cv)cv.textContent=e.target.value+"%";const V=selVal();if(!V||busy)return;const want=V*RTP/ch;let best=null;for(const it of ITEMS){if(it.v>V&&(best==null||Math.abs(it.v-want)<Math.abs(best.v-want)))best=it}if(best){target=best.id;renderTargets();renderRing()}}
   else if(id==="autoS"){S.autoSell=e.target.checked;save()}
   else if(id==="impFile"){const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{try{const o=JSON.parse(r.result);if(!o||typeof o.bal!=="number"||!Array.isArray(o.inv))throw 0;window.__ns=true;localStorage.setItem(KEY,JSON.stringify(o));location.reload()}catch(_){window.__ns=false;toast("Файл не подходит")}};r.readAsText(f)}
   else if(id==="tq"){q=e.target.value;renderTargets()}
-  else if(id==="rf"){rf=e.target.value;tab==="inv"?viewInv():viewCat()}
-  else if(id==="sb"){sortBy=e.target.value;tab==="inv"?viewInv():viewCat()}
+  else if(id==="rf"){rf=e.target.value;refList()}
+  else if(id==="sb"){sortBy=e.target.value;refList()}
 });
 let rs=false;
 $("#reset").addEventListener("click",e=>{
   if(!rs){rs=true;e.target.textContent="Точно? Нажми ещё раз";setTimeout(()=>{rs=false;e.target.textContent="Начать заново"},3000);return}
   S={bal:1000,sec:0,uid:1,inv:[],opened:0,upW:0,upL:0,gift:1,gift2:1,gift3:1,gift4:1,gift5:1,gift6:1};sel.clear();target=null;openCase=null;zoneOff=0;save();rs=false;e.target.textContent="Начать заново";render();toast("Игра сброшена, баланс ◈1 000");
 });
-window.__DBG={ordNew,ordFind,ordAct,ordTick,ITEMS,CASES,buildVehicle,startDrive,S,BIZ,SETS,MODELS,XM,MP,catOf,bizCalc};
+window.__DBG={ctrPick,CT_RISK,ordNew,ordFind,ordAct,ordTick,ITEMS,CASES,buildVehicle,startDrive,S,BIZ,SETS,MODELS,XM,MP,catOf,bizCalc};
 if(S.pend)applyUp(S.pend);
 render();
 addEventListener("pagehide",save);
