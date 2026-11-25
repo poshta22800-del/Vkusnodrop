@@ -320,6 +320,40 @@ nav button{border-radius:10px}.panel{border-radius:14px;background:linear-gradie
 @media(prefers-reduced-motion:reduce){.ring.spinning,.ring.win,.ring.lose,.it.staked,.it .spot,.btn.pri:not(:disabled),.fd{animation:none}}
 </style>
 <style>
+/* ---- графика: общий лоск ---- */
+::-webkit-scrollbar{width:10px;height:10px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:#2c3440;border-radius:8px;border:2px solid transparent;background-clip:content-box}::-webkit-scrollbar-thumb:hover{background:#3b4656;background-clip:content-box;border:2px solid transparent}
+*{scrollbar-width:thin;scrollbar-color:#2c3440 transparent}
+#main{animation:viewIn .32s cubic-bezier(.2,.8,.2,1)}
+@keyframes viewIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+.grid .it{transition:transform .18s cubic-bezier(.2,.8,.2,1),box-shadow .18s,filter .18s}
+.grid .it:hover{transform:translateY(-4px) scale(1.02);box-shadow:0 10px 24px -8px var(--rc),0 0 0 1px color-mix(in srgb,var(--rc) 55%,transparent)}
+.grid .it.sel{box-shadow:0 0 0 2px var(--accent),0 8px 22px -8px var(--accent)}
+.panel{background:linear-gradient(180deg,#1a1f27,var(--panel));border-color:#2b323d;box-shadow:0 8px 24px -14px #000}
+.case{transition:transform .2s cubic-bezier(.2,.8,.2,1),box-shadow .2s}.case:hover:not(.lock){transform:translateY(-5px);box-shadow:0 14px 30px -12px hsl(var(--h) 80% 55%/.6)}
+nav button{transition:background .15s,color .15s,transform .15s}nav button:hover:not([aria-selected=true]){background:#232a34;transform:translateY(-1px)}
+nav button[aria-selected=true]{box-shadow:0 4px 18px -4px #ffbf2e88}
+.btn:hover:not(:disabled){border-color:#475264;filter:brightness(1.12)}.btn:disabled{opacity:.45;cursor:not-allowed}
+#toast{backdrop-filter:blur(8px)}
+h2{letter-spacing:.2px}
+body::before{content:"";position:fixed;inset:0;pointer-events:none;z-index:-1;background:radial-gradient(1px 1px at 20% 30%,#ffffff30,transparent),radial-gradient(1px 1px at 70% 60%,#ffffff22,transparent),radial-gradient(1.5px 1.5px at 40% 80%,#ffffff1c,transparent),radial-gradient(1px 1px at 90% 15%,#ffffff26,transparent);background-size:340px 340px;animation:drift 90s linear infinite}
+@keyframes drift{to{background-position:340px 340px}}
+@media(prefers-reduced-motion:reduce){#main,body::before{animation:none}.grid .it:hover,.case:hover{transform:none}}
+/* ---- контракты ---- */
+.ordhead{display:flex;flex-wrap:wrap;gap:8px 22px;align-items:center;margin-bottom:12px}
+.ordhead .rk{font:800 20px var(--f-display);color:var(--accent)}
+.ordhead small{color:var(--mute);display:block;font-size:11px}
+.ordhead .bar{width:170px}
+.ords{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:12px}
+.ord{position:relative;display:flex;flex-direction:column;gap:8px;border:1px solid color-mix(in srgb,var(--dc) 45%,var(--line));border-radius:12px;padding:12px;background:radial-gradient(120% 80% at 0% 0%,color-mix(in srgb,var(--dc) 16%,#161a20),#161a20 70%);overflow:hidden}
+.ord.rdy{box-shadow:0 0 0 1px var(--dc),0 0 24px -6px var(--dc)}
+.ord .dg{position:absolute;top:10px;right:10px;font-size:10px;font-weight:800;letter-spacing:.6px;text-transform:uppercase;padding:2px 8px;border-radius:99px;background:color-mix(in srgb,var(--dc) 25%,#000);color:var(--dc)}
+.ord .rq{font:700 16px var(--f-display);padding-right:70px}
+.ord .row{display:flex;gap:12px;align-items:center}.ord .row .it{width:110px;flex:none;cursor:default;padding-top:20px}
+.ord .inf{display:flex;flex-direction:column;gap:4px;font-size:12px;color:var(--mute);min-width:0}
+.ord .inf b{color:var(--fg)}.ord .rw{font:800 20px var(--f-display);color:#46d38a}
+.ord .tm{height:5px;background:#0d1014;border-radius:3px;overflow:hidden}.ord .tm i{display:block;height:100%;background:var(--dc);transition:width 1s linear}
+.ord .acts{display:flex;gap:8px;flex-wrap:wrap}.ord .acts .btn{flex:1}
+.ord .pg{font-size:12px}.ord .pg.ok{color:#46d38a}.ord .pg.no{color:#ff8a8a}
 .ring{touch-action:none;cursor:grab;user-select:none;-webkit-user-select:none}.ring:active{cursor:grabbing}
 .zbar{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;align-items:center}.zbar .btn{padding:5px 10px;font-size:12px}.zbar .zt{font-size:12px;color:var(--mute);min-width:92px;text-align:center}
 .zhint{font-size:11px;color:var(--mute);text-align:center;margin:0}
@@ -1048,7 +1082,7 @@ function head(){
   $("#incLbl").textContent="+10 ◈ через "+(60-S.sec%60)+" с";
   $("#snd").textContent=muted?"Звук: выкл":"Звук: вкл";
   $("#stats").textContent=`Предметов в каталоге: ${ITEMS.length} · Кейсов: ${CASES.length} · Открыто: ${S.opened} · Апгрейды: ${S.upW} из ${S.upW+S.upL}`;
-  const tb=[["cases","Кейсы",CASES.length],["biz","💼 Бизнес",""],["drive","🏎️ Играть",""],["col","🏆 Коллекции",""],["upg","Апгрейдер",""],["goals","🎯 Цели",""],["inv","Инвентарь",S.inv.length],["cat","Каталог",ITEMS.length]];
+  const tb=[["cases","Кейсы",CASES.length],["biz","💼 Бизнес",""],["drive","🏎️ Играть",""],["col","🏆 Коллекции",""],["upg","Апгрейдер",""],["ord","📑 Контракты",ordReady()||""],["goals","🎯 Цели",""],["inv","Инвентарь",S.inv.length],["cat","Каталог",ITEMS.length]];
   $("#tabs").innerHTML=tb.map(t=>`<button role="tab" data-tab="${t[0]}" aria-selected="${tab===t[0]}">${t[1]}${t[2]!==""?`<span class="cnt">${t[2]}</span>`:""}</button>`).join("");
 }
 let lastT=Date.now();
@@ -1167,7 +1201,8 @@ function sell(uids){
 /* ---------- апгрейдер ---------- */
 const RTP=.92;
 const selVal=()=>invItems().filter(i=>sel.has(i.uid)).reduce((s,i)=>s+i.v,0)+addM;
-const chanceOf=(V,T)=>Math.min(.92,V/T*RTP);
+const luck=()=>Math.min(.1,(S.upLS||0)*.01);
+const chanceOf=(V,T)=>Math.min(.92,V/T*RTP+luck());
 const canGo=()=>target!=null&&(sel.size>0||addM>0)&&ITEMS[target].v>selVal()&&S.bal>=addM;
 let rot=0,zoneOff=S.zoneOff||0,zDrag=false,tgtLimit=150;
 function viewUp(){
@@ -1203,7 +1238,7 @@ function renderRing(ang){
   <div class="pair">${(mine.length||addM>0)?stakeHtml(mine,V):""}${T?`<span class="arrow">→</span>${card(T)}`:""}</div>
   ${has?`<div class="risk"><span>Выигрыш: <b class="g">+${fmt(T.v-V)}</b></span><span>Риск: <b class="r">−${fmt(V)}</b></span><span>${ch>=.5?"низкий риск":ch>=.2?"средний риск":"высокий риск"}</span></div>`:""}
   <div class="zbar"><button class="btn" data-z="-15" title="Сдвинуть зону влево">◀</button><span class="zt" id="zoneTxt">Зона: ${Math.round(zoneOff)}°</span><button class="btn" data-z="15" title="Сдвинуть зону вправо">▶</button><button class="btn" data-z="rnd">🎲 Случайно</button><button class="btn" data-z="0">Сброс</button></div>
-  <p class="zhint">Тяни зону по кругу, чтобы поставить её где хочешь. Шанс от позиции не зависит.</p>
+  <p class="zhint">Тяни зону по кругу, чтобы поставить её где хочешь. Шанс от позиции не зависит.${luck()>0?` <b style="color:#46d38a">Бонус удачи +${Math.round(luck()*100)}% после серии неудач.</b>`:""}</p>
   <button class="btn pri" id="goBtn" ${canGo()&&!busy?"":"disabled"}>Апгрейд</button><div class="upstat" id="upStat"></div><div id="upRes"></div>
   ${(S.upHist||[]).length?`<div class="uph"><b style="font-size:12px;color:var(--mute)">Последние апгрейды</b>${S.upHist.slice(0,8).map(h=>`<div><span class="${h.w?"w":"l"}">${h.w?"✔":"✘"} ${h.nm}</span><span>${h.w?"+"+fmt(h.tv-h.v):"−"+fmt(h.v)}</span></div>`).join("")}</div>`:""}`;
   updUpStat();
@@ -1217,7 +1252,7 @@ document.addEventListener("pointerup",()=>{if(zDrag){zDrag=false;S.zoneOff=zoneO
 document.addEventListener("pointercancel",()=>{zDrag=false});
 function applyUp(P){
   S.inv=S.inv.filter(x=>!P.ids.includes(x.uid));S.bal=Math.max(0,S.bal-P.m);
-  S.upNet=(S.upNet||0)+(P.won?(P.tv||0)-(P.v||0):-(P.v||0));S.upHist=S.upHist||[];if(P.nm){S.upHist.unshift({w:P.won?1:0,nm:P.nm,v:P.v,tv:P.tv});if(S.upHist.length>12)S.upHist.pop()}
+  S.upLS=P.won?0:(S.upLS||0)+1;S.upNet=(S.upNet||0)+(P.won?(P.tv||0)-(P.v||0):-(P.v||0));S.upHist=S.upHist||[];if(P.nm){S.upHist.unshift({w:P.won?1:0,nm:P.nm,v:P.v,tv:P.tv});if(S.upHist.length>12)S.upHist.pop()}
   if(P.won){S.inv.push({uid:P.uid,id:P.tid});S.upW++}else{S.upL++;if(P.cid!=null)S.inv.push({uid:P.cuid,id:P.cid})}
   P.ids.forEach(u=>sel.delete(u));addM=0;S.pend=null;save();
 }
@@ -2200,7 +2235,7 @@ addEventListener("pointerdown",()=>{if(musOn&&!MU.run)musStart()},{passive:true}
 document.addEventListener("click",e=>{if(e.target.id==="mus"){musOn=!musOn;try{localStorage.setItem("vd-music",musOn?"1":"0")}catch(_){}if(musOn)musStart();setMus();SND.click()}});
 setMus();
 const lvXP=n=>Math.round(60*n*n+40*n);
-const xpNow=()=>Math.floor((S.bizTot||0)/40000+(S.opened||0)*3+(S.upW||0)*12+Object.keys(S.colDone||{}).length*150+Object.keys(S.ach||{}).length*60+(S.drives||0)*5+(S.ctrDone||0)*20);
+const xpNow=()=>Math.floor((S.bizTot||0)/40000+(S.opened||0)*3+(S.upW||0)*12+Object.keys(S.colDone||{}).length*150+Object.keys(S.ach||{}).length*60+(S.drives||0)*5+(S.ctrDone||0)*20+(S.ordDone||0)*15);
 function plvl(){const x=xpNow();let l=0;while(x>=lvXP(l+1))l++;return {l,x,a:lvXP(l),b:lvXP(l+1)}}
 const TECH=[
 ["inc","📈","Маркетинговый отдел","+6% к доходу всех бизнесов за уровень",2e6,3.2,5,60],
@@ -2253,7 +2288,8 @@ const ACH=[
 ["city","🌍","Глобальный","Открыто филиалов",()=>{let n=0;if(S.biz)for(const k in S.biz)n+=S.biz[k].city||0;return n},[1,5,15,30],[5e5,1e7,2e8,3e9]],
 ["tech","🔬","Учёный","Уровней исследований",()=>Object.values(S.tech||{}).reduce((a,b)=>a+b,0),[1,5,12,22],[1e6,1e7,2e8,2e9]],
 ["drive","🏎️","Гонщик","Поездок в 3D",()=>S.drives||0,[1,10,50,200],[20000,300000,5e6,5e7]],
-["ctr","📜","Подрядчик","Выполнено контрактов",()=>S.ctrDone||0,[1,10,50,200],[1e5,2e6,5e7,1e9]]
+["ctr","📜","Подрядчик","Выполнено контрактов",()=>S.ctrDone||0,[1,10,50,200],[1e5,2e6,5e7,1e9]],
+["ord","📑","Посредник","Сдано контрактов на машины",()=>S.ordDone||0,[1,10,50,200],[2e4,3e5,5e6,1e8]]
 ];
 function achCheck(){S.ach=S.ach||{};let got=0;ACH.forEach(a=>{const v=a[4]();a[5].forEach((g,i)=>{const k=a[0]+":"+i;if(v>=g&&!S.ach[k]){S.ach[k]=1;S.bal+=a[6][i];got++;toast("🎯 "+a[2]+" ★"+(i+1)+": +"+fmt(a[6][i]));SND.level()}})});if(got){save();head()}}
 const dayStr=d=>d.getFullYear()+"-"+(d.getMonth()+1)+"-"+d.getDate();
@@ -2263,6 +2299,70 @@ function dailyClaim(){const i=dailyInfo();if(!i.can)return;const k=i.next;S.dail
   if(k===7){const c=CASES.find(c=>c.price>=25000000),w=pick(c);S.inv.push({uid:S.uid++,id:w.id});extra=" + "+w.model}
   save();head();SND.win(k>=7?6:3);toast("🎁 День "+k+": +"+fmt(dayReward(k))+extra);const o=$("#dailyov");if(o)o.remove();if(tab==="goals")viewGoals()}
 function dailyBox(){const i=dailyInfo();return `<div class="panel daily"><b>🎁 Ежедневная награда</b><div class="days">${[1,2,3,4,5,6,7].map(k=>{const done=!i.can?k<=i.next:k<i.next;return `<div class="day${done?" got":""}${i.can&&k===i.next?" now":""}"><small>День ${k}</small><b>${k===7?"🚗":"🎁"}</b><span>${fmt(dayReward(k))}</span></div>`}).join("")}</div>${i.can?`<button class="btn pri" data-v2="daily">Забрать день ${i.next}</button>`:`<p class="sub" style="margin:8px 0 0">Награда получена. Возвращайся завтра, на 7-й день подарок — машина.</p>`}</div>`}
+/* ===== Контракты клиентов: сдай нужные машины за премию ===== */
+const ORD_RANKS=[[0,"Новичок",0],[5,"Агент",.05],[15,"Брокер",.1],[40,"Магнат",.18],[100,"Легенда",.3]];
+const ORD_DIFF=[["Обычный","#5aa9ff",1.3,20],["Сложный","#b06cff",1.6,30],["Элитный","#ffd34d",2,45]];
+function ordRank(){const n=S.ordDone||0;let i=0;ORD_RANKS.forEach((r,k)=>{if(n>=r[0])i=k});return {i,r:ORD_RANKS[i],next:ORD_RANKS[i+1]}}
+const ordSlots=()=>3+ordRank().i;
+const ordMult=o=>ORD_DIFF[o.d][2]*(1+ordRank().r[2]+Math.min(.5,(S.ordStreak||0)*.05));
+function ordMatch(sp,it){
+  if(sp.k==="model")return it.model===sp.m&&it.vi>=sp.vi;
+  if(sp.k==="tier")return it.t===sp.t;
+  if(sp.k==="var")return it.vi>=sp.vi&&it.v>=sp.min;
+  if(sp.k==="range")return it.v>=sp.lo&&it.v<=sp.hi;
+  return false}
+function ordText(sp){
+  if(sp.k==="model")return `${sp.m}, состояние не хуже «${VAR[sp.vi][0]}»`;
+  if(sp.k==="tier")return `Любые предметы класса «${TIERS[sp.t][1]}»`;
+  if(sp.k==="var")return `Состояние «${VAR[sp.vi][0]}» или лучше, от ${fmt(sp.min)}`;
+  return `Любые предметы стоимостью ${fmt(sp.lo)} – ${fmt(sp.hi)}`}
+function ordNew(){
+  const top=S.inv.reduce((m,x)=>Math.max(m,ITEMS[x.id].v),0),ref=Math.max(40,top*.35);
+  let pool=ITEMS.filter(it=>it.v>=ref*.4&&it.v<=ref*6);if(pool.length<10)pool=ITEMS.filter(it=>it.v<=ref*25);
+  const T=pool[Math.random()*pool.length|0],r=Math.random(),d=r<.55?0:r<.88?1:2,k=["model","model","tier","var","var","range","range"][Math.random()*7|0];
+  let sp,n=1;
+  if(k==="model")sp={k,m:T.model,vi:T.vi};
+  else if(k==="tier"){sp={k,t:T.t};n=1+d+(Math.random()*2|0)}
+  else if(k==="var")sp={k,vi:Math.max(1,T.vi),min:Math.round(T.v*.6)};
+  else{sp={k,lo:Math.round(T.v*.8),hi:Math.round(T.v*1.8)};n=1+d+(Math.random()*2|0)}
+  if(k==="var")n=1+(d>0?d:0);
+  return {id:S.ordSeq=(S.ordSeq||0)+1,sp,n,d,seed:T.id,until:Date.now()+ORD_DIFF[d][3]*60000}}
+const ordFind=o=>invItems().filter(it=>ordMatch(o.sp,it)).sort((a,b)=>a.v-b.v);
+function ordEst(o,have){const g=have.slice(0,o.n),V=g.length>=o.n?g.reduce((s,i)=>s+i.v,0):ITEMS[o.seed].v*o.n;return Math.round(V*ordMult(o))}
+function ordReady(){return (S.orders||[]).filter(o=>ordFind(o).length>=o.n).length}
+function ordTick(){S.orders=S.orders||[];const now=Date.now();let ch=false;
+  S.orders=S.orders.filter(o=>{if(now>=o.until){S.ordStreak=0;S.ordExp=(S.ordExp||0)+1;ch=true;toast("📑 Контракт истёк, серия сброшена");return false}return true});
+  while(S.orders.length<ordSlots()){S.orders.push(ordNew());ch=true}
+  if(ch){save();head();if(tab==="ord"&&!busy)viewOrd()}}
+function ordAct(a){
+  const [op,id]=a.split(":"),o=(S.orders||[]).find(x=>x.id==id);if(!o)return;
+  if(op==="do"){
+    const have=ordFind(o);if(have.length<o.n)return toast("Не хватает подходящих предметов");
+    const g=have.slice(0,o.n),V=g.reduce((s,i)=>s+i.v,0),rew=Math.round(V*ordMult(o)),us=new Set(g.map(i=>i.uid));
+    S.inv=S.inv.filter(x=>!us.has(x.uid));us.forEach(u=>sel.delete(u));
+    S.bal+=rew;S.ordDone=(S.ordDone||0)+1;S.ordStreak=(S.ordStreak||0)+1;S.ordBest=Math.max(S.ordBest||0,S.ordStreak);S.ordTot=(S.ordTot||0)+rew;
+    S.orders=S.orders.map(x=>x===o?ordNew():x);
+    const up=ordRank();save();head();SND.cash();toast(`📑 Контракт сдан: +${fmt(rew)} (на ${fmt(rew-V)} больше продажи)`);achCheck();viewOrd();return}
+  if(op==="rr"){const c=Math.max(10,Math.round(ordEst(o,ordFind(o))*.08));if(S.bal<c)return toast("Не хватает денег");S.bal-=c;S.orders=S.orders.map(x=>x===o?ordNew():x);save();head();SND.click();viewOrd()}
+}
+function ordCard(o){
+  const D=ORD_DIFF[o.d],have=ordFind(o),ok=have.length>=o.n,rew=ordEst(o,have),rc=Math.max(10,Math.round(rew*.08)),T=ITEMS[o.seed];
+  return `<div class="ord${ok?" rdy":""}" style="--dc:${D[1]}"><span class="dg">${D[0]}</span>
+  <div class="rq">${o.n>1?"×"+o.n+" · ":""}${o.sp.k==="model"?o.sp.m:o.sp.k==="tier"?"Класс «"+TIERS[o.sp.t][1]+"»":o.sp.k==="var"?"«"+VAR[o.sp.vi][0]+"» и лучше":"Диапазон цен"}</div>
+  <div class="row">${card(T)}<div class="inf"><span>${ordText(o.sp)}</span><span>Нужно: <b>${o.n}</b></span><span class="pg ${ok?"ok":"no"}">В инвентаре: <b>${Math.min(have.length,999)}</b> из ${o.n}${ok?" ✔":""}</span><span>Награда: <span class="rw">${fmt(rew)}</span></span><span>×${ordMult(o).toFixed(2).replace(".",",")} к цене предметов</span></div></div>
+  <div class="tm"><i data-ob="${o.id}" style="width:${Math.max(0,(o.until-Date.now())/(D[3]*600))}%"></i></div><div class="sub" style="margin:0;font-size:12px">Осталось <b data-ot="${o.id}">${ordTime(o.until)}</b></div>
+  <div class="acts"><button class="btn pri" data-oa="do:${o.id}" ${ok?"":"disabled"}>Сдать</button><button class="btn" data-oa="rr:${o.id}" data-rc="${rc}" ${S.bal>=rc?"":"disabled"} title="Заменить контракт">Другой · ${fmt(rc)}</button></div></div>`}
+const ordTime=u=>{const t=Math.max(0,Math.ceil((u-Date.now())/1000)),m=t/60|0,s=t%60;return m+":"+String(s).padStart(2,"0")};
+function viewOrd(){
+  ordTick();const R=ordRank(),n=S.ordDone||0,st=S.ordStreak||0;
+  $("#main").innerHTML=`<h2>Контракты</h2><p class="sub">Клиенты ищут конкретные машины и платят больше рыночной цены. Подходящие предметы берутся из инвентаря автоматически, самые дешёвые из подходящих. Не успел до конца таймера, и серия сбросится.</p>
+  <div class="panel ordhead"><div><small>Ранг</small><span class="rk">${R.r[1]}</span><small>бонус к наградам +${Math.round(R.r[2]*100)}% · слотов ${ordSlots()}</small></div>
+  <div><small>Серия подряд</small><b style="font-size:20px">${st}</b><small>бонус +${Math.min(50,st*5)}% (макс. +50%)</small></div>
+  <div><small>Сдано / истекло</small><b style="font-size:20px">${n} / ${S.ordExp||0}</b><small>лучшая серия ${S.ordBest||0} · заработано ${fmt(S.ordTot||0)}</small></div>
+  ${R.next?`<div><small>До ранга «${R.next[1]}»</small><div class="bar"><i style="width:${(n-R.r[0])/(R.next[0]-R.r[0])*100}%"></i></div><small>${n} из ${R.next[0]}</small></div>`:`<div><small>Максимальный ранг</small></div>`}</div>
+  <div class="ords">${S.orders.map(ordCard).join("")}</div>`}
+setInterval(()=>{ordTick();if(tab!=="ord"||busy)return;(S.orders||[]).forEach(o=>{const t=document.querySelector(`[data-ot="${o.id}"]`);if(t)t.textContent=ordTime(o.until);const b=document.querySelector(`[data-ob="${o.id}"]`);if(b)b.style.width=Math.max(0,(o.until-Date.now())/(ORD_DIFF[o.d][3]*600))+"%"});document.querySelectorAll("[data-rc]").forEach(b=>b.disabled=S.bal<+b.dataset.rc)},1000);
+
 function viewGoals(){
   achCheck();const L=plvl();
   $("#main").innerHTML=`<h2>Цели</h2><p class="sub">Уровень игрока растёт от кейсов, апгрейдов, бизнеса и коллекций. Каждый уровень даёт +1% к доходу бизнесов. Награды за цели выдаются автоматически.</p>
@@ -2361,7 +2461,7 @@ document.addEventListener("click",e=>{
 addEventListener("keydown",e=>{if(e.key==="Escape"&&VM)closeVM()});
 
 /* ---------- роутинг ---------- */
-function render(){head();({cases:viewCases,drive:viewDrive,upg:viewUp,inv:viewInv,cat:viewCat,biz:viewBiz,col:viewCol,goals:viewGoals})[tab]()}
+function render(){head();{const m=$("#main");if(m){m.style.animation="none";void m.offsetWidth;m.style.animation=""}}({ord:viewOrd,cases:viewCases,drive:viewDrive,upg:viewUp,inv:viewInv,cat:viewCat,biz:viewBiz,col:viewCol,goals:viewGoals})[tab]()}
 function restoreFocus(id,pos){const e=document.getElementById(id);if(e){e.focus();try{e.setSelectionRange(pos,pos)}catch(_){}}}
 
 document.addEventListener("click",e=>{
@@ -2377,6 +2477,7 @@ document.addEventListener("click",e=>{
   const qb=e.target.closest("[data-qty]");
   if(qb&&!busy){const c=CASES[openCase];qtyMax=qb.dataset.qty==="max";qty=qtyMax?maxCases(c):+qb.dataset.qty;document.querySelectorAll("#qty .btn").forEach(b=>b.classList.toggle("pri",qtyMax?b.dataset.qty==="max":+b.dataset.qty===qty));const ob=$("#openBtn");ob.textContent=openLabel(c);ob.disabled=S.bal<c.price*qty;return}
   if(e.target.id==="goBtn"){doUpgrade();return}
+  const oa=e.target.closest("[data-oa]");if(oa){ordAct(oa.dataset.oa);return}
   const zb=e.target.closest("[data-z]");
   if(zb&&!busy){const z=zb.dataset.z;setZone(z==="rnd"?Math.random()*360:z==="0"?0:zoneOff+ +z,true);return}
   if(e.target.id==="upAll"&&!busy){invItems().forEach(i=>sel.add(i.uid));if(target!=null&&ITEMS[target].v<=selVal())target=null;viewUp();return}
@@ -2432,7 +2533,7 @@ $("#reset").addEventListener("click",e=>{
   if(!rs){rs=true;e.target.textContent="Точно? Нажми ещё раз";setTimeout(()=>{rs=false;e.target.textContent="Начать заново"},3000);return}
   S={bal:1000,sec:0,uid:1,inv:[],opened:0,upW:0,upL:0,gift:1,gift2:1,gift3:1,gift4:1,gift5:1,gift6:1};sel.clear();target=null;openCase=null;zoneOff=0;save();rs=false;e.target.textContent="Начать заново";render();toast("Игра сброшена, баланс ◈1 000");
 });
-window.__DBG={ITEMS,CASES,buildVehicle,startDrive,S,BIZ,SETS,MODELS,XM,MP,catOf,bizCalc};
+window.__DBG={ordNew,ordFind,ordAct,ordTick,ITEMS,CASES,buildVehicle,startDrive,S,BIZ,SETS,MODELS,XM,MP,catOf,bizCalc};
 if(S.pend)applyUp(S.pend);
 render();
 addEventListener("pagehide",save);
